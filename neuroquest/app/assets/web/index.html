@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A3D25">
+<title>NeuroQuest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=29">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ JOURNEY MAP ============ -->
+  <div id="scr-map" class="screen">
+    <div class="hud">
+      <div class="avatar">🧠</div>
+      <div class="wordmark">Neuro<em>Quest</em></div>
+      <div class="hud-stat" id="hud-stars"><span class="star">★</span> 0</div>
+    </div>
+    <div id="map-scroll"></div>
+    <div class="tabbar">
+      <div class="tab active"><span class="t-ico">🗺️</span>Journey</div>
+      <div class="tab" data-nav="lab"><span class="t-ico">🔬</span>Free Lab</div>
+      <div class="tab" data-nav="awards"><span class="t-ico">🏅</span>Awards</div>
+    </div>
+  </div>
+
+  <!-- ============ LEVEL ============ -->
+  <div id="scr-level" class="screen hidden">
+    <div class="play-top">
+      <div class="icon-btn" id="lv-back">‹</div>
+      <div class="play-title" id="lv-title">Level</div>
+      <div class="play-stars" id="lv-stars"></div>
+    </div>
+    <div class="goal-card" id="lv-goal"></div>
+    <div class="stage-wrap" id="lv-boardarea">
+      <div class="stage" id="lv-stage">
+        <span class="silk-corner" style="top:5px;left:34px" id="lv-board">NQ-BRD</span>
+        <span class="silk-corner" style="bottom:5px;right:34px">REV A</span>
+        <div class="screwhole" style="top:6px;left:6px"></div>
+        <div class="screwhole" style="top:6px;right:6px"></div>
+        <div class="screwhole" style="bottom:6px;left:6px"></div>
+        <div class="screwhole" style="bottom:6px;right:6px"></div>
+        <svg class="wires-svg" id="lv-wires"></svg>
+      </div>
+      <div class="dataset-strip" id="lv-cards"></div>
+      <svg id="lv-cardlinks"></svg>
+    </div>
+    <div class="controls hidden" id="lv-train">
+      <div class="train-hud">
+        <div class="thud"><div class="th-k">EPOCH</div><span class="lcd" id="tr-epoch">000</span></div>
+        <div class="thud"><div class="th-k">SORTED</div><span class="lcd" id="tr-sorted">0/0</span></div>
+        <div class="thud"><div class="th-k">LOSS</div><svg id="tr-spark" class="loss-spark" viewBox="0 0 60 24"></svg></div>
+      </div>
+      <div id="lv-lr-row">
+        <div class="ctl-label"><span>LEARNING RATE · THROTTLE</span><span class="lcd" id="lv-lr-val" style="font-size:11px">0.10</span></div>
+        <input type="range" class="knob-slider" id="lv-lr" min="-2" max="0.48" step="0.02" value="-1">
+      </div>
+      <div class="train-btns">
+        <button class="btn btn-ghost" id="tr-step">STEP</button>
+        <button class="btn btn-red" id="tr-run">⚡ TRAIN</button>
+        <button class="btn btn-ghost" id="tr-reset">↺ RESET</button>
+      </div>
+    </div>
+    <div class="controls hidden" id="lv-labtray">
+      <div class="ctl-label"><span>PARTS TRAY — tap to place</span><span id="lab-count">0/6</span></div>
+      <div class="tray-btns">
+        <button class="btn btn-ghost" data-part="amp">AMP</button>
+        <button class="btn btn-ghost" data-part="relu">GATE</button>
+        <button class="btn btn-ghost" data-part="sum">Σ</button>
+        <button class="btn btn-ghost" id="lab-clear">🗑 CLEAR</button>
+      </div>
+    </div>
+    <div class="play-cta">
+      <button class="btn btn-grn" id="lv-test">⏻ FINISH — CLAIM STARS</button>
+    </div>
+  </div>
+
+  <!-- ============ AWARDS ============ -->
+  <div id="scr-awards" class="screen hidden">
+    <div class="hud">
+      <div class="avatar">🏅</div>
+      <div class="wordmark">Service <em>Record</em></div>
+      <div class="hud-stat" id="aw-stars"><span class="star">★</span> 0</div>
+    </div>
+    <div id="awards-list"></div>
+    <div class="tabbar">
+      <div class="tab" data-nav="map"><span class="t-ico">🗺️</span>Journey</div>
+      <div class="tab" data-nav="lab"><span class="t-ico">🔬</span>Free Lab</div>
+      <div class="tab active"><span class="t-ico">🏅</span>Awards</div>
+    </div>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <div id="modal-datasheet" class="modal-back hidden"></div>
+  <div id="modal-win" class="modal-back hidden"></div>
+  <div id="modal-goal" class="modal-back hidden"></div>
+  <div id="toast"></div>
+</div>
+
+<script src="js/engine.js?v=29"></script>
+<script src="js/levels.js?v=29"></script>
+<script src="js/app.js?v=29"></script>
+</body>
+</html>

@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroQuest — PCB Workbench Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --board: #157347;
+  --board-dark: #0E5434;
+  --board-edge: #0A3D25;
+  --gold: #E9B94F;
+  --gold-hi: #FFD98A;
+  --copper: #D98E4A;
+  --silk: #EFFFF4;
+  --silk-dim: rgba(239,255,244,0.55);
+  --lcd: #C9DB74;
+  --lcd-ink: #2A3B14;
+  --led-red: #FF5349;
+  --led-grn: #4AE581;
+  --led-amb: #FFC848;
+  --chip: #23283B;
+  --chip-lite: #3A415C;
+  --paper: #FBF7EC;
+  --ink: #24303F;
+  --btn-red: #E8503F;
+  --btn-red-deep: #B03225;
+  --btn-grn: #23B36B;
+  --btn-grn-deep: #157A47;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Rubik', sans-serif;
+  background: #0B1F14;
+  background-image: radial-gradient(ellipse at 20% 15%, #12321F 0%, transparent 55%),
+                    radial-gradient(ellipse at 85% 85%, #071710 0%, transparent 55%);
+  color: var(--silk);
+  min-height: 100vh;
+  padding: 34px 30px 50px;
+}
+h1.page-title { font-family: 'Fredoka', sans-serif; text-align: center; font-size: 28px; font-weight: 700; }
+h1.page-title span { color: var(--gold); }
+p.page-sub { text-align: center; color: #7FAE92; font-size: 14px; margin: 4px 0 30px; }
+.frames { display: flex; gap: 26px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.frame-wrap { text-align: center; }
+.frame-label { font-size: 13px; margin-bottom: 10px; color: #A8CBB6; font-weight: 600; }
+
+.phone {
+  width: 300px; height: 632px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,0.07) 0%, transparent 30%),
+    var(--board);
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,0.06) 0%, transparent 30%),
+    radial-gradient(rgba(10,61,37,0.55) 1.6px, transparent 1.6px);
+  background-size: 100% 100%, 26px 26px;
+  border-radius: 34px;
+  border: 7px solid #071710;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+  overflow: hidden;
+  position: relative;
+  text-align: left;
+}
+.notch {
+  position: absolute; top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 84px; height: 16px;
+  background: #071710;
+  border-radius: 10px;
+  z-index: 100;
+}
+/* decorative board traces on every screen */
+.board-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
+
+/* silkscreen text */
+.silk { font-size: 9px; letter-spacing: 1.5px; color: var(--silk-dim); font-weight: 600; }
+.mono { font-family: 'Share Tech Mono', monospace; }
+
+/* atoms */
+.btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600; font-size: 14.5px;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 22px;
+  display: inline-block;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.btn-red { background: var(--btn-red); box-shadow: 0 4.5px 0 var(--btn-red-deep), 0 0 18px rgba(232,80,63,0.35); }
+.btn-grn { background: var(--btn-grn); box-shadow: 0 4.5px 0 var(--btn-grn-deep), 0 0 18px rgba(35,179,107,0.35); }
+.btn-ghost { background: rgba(239,255,244,0.08); color: var(--silk); border: 2px dashed rgba(239,255,244,0.4); box-shadow: none; }
+.star { color: var(--gold); text-shadow: 0 0 8px rgba(233,185,79,0.55); }
+.star.off { color: rgba(239,255,244,0.22); text-shadow: none; }
+
+/* LCD display */
+.lcd {
+  font-family: 'Share Tech Mono', monospace;
+  background: linear-gradient(180deg, #D3E387, var(--lcd));
+  color: var(--lcd-ink);
+  border-radius: 7px;
+  border: 2px solid #0A3D25;
+  box-shadow: inset 0 2px 5px rgba(42,59,20,0.35);
+  padding: 3px 8px;
+}
+
+/* SCREEN 1: motherboard map */
+.hud { display: flex; align-items: center; justify-content: space-between; padding: 34px 16px 8px; position: relative; z-index: 2; }
+.hud .avatar {
+  width: 42px; height: 42px;
+  background: var(--chip);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  border: 1.5px solid var(--chip-lite);
+  box-shadow: 0 3px 0 #10131F;
+  position: relative;
+}
+.hud .avatar::before, .hud .avatar::after {
+  content: '';
+  position: absolute; left: 6px; right: 6px;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 9px);
+}
+.hud .avatar::before { top: -7px; }
+.hud .avatar::after { bottom: -7px; }
+.hud .wordmark { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 17px; }
+.hud .wordmark em { font-style: normal; color: var(--gold); }
+.hud-stat {
+  background: var(--board-dark);
+  border: 1.5px solid var(--gold);
+  border-radius: 11px;
+  padding: 4px 10px;
+  font-weight: 700; font-size: 13px;
+}
+.sector-bar {
+  margin: 10px 16px;
+  border: 2px solid var(--silk-dim);
+  border-radius: 4px;
+  padding: 8px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  position: relative; z-index: 2;
+  background: rgba(10,61,37,0.45);
+}
+.sector-bar .sb-title { font-family: 'Fredoka', sans-serif; font-size: 13.5px; font-weight: 600; letter-spacing: 0.5px; }
+.sector-bar .sb-sub { font-size: 10.5px; color: var(--silk-dim); }
+.sector-bar .lcd { font-size: 13px; }
+.mapwrap { position: relative; z-index: 1; height: 396px; }
+.pad {
+  position: absolute;
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  z-index: 2;
+}
+.pad .n-num { font-size: 19px; line-height: 1.05; }
+.pad .n-stars { font-size: 9px; letter-spacing: 1px; }
+.pad.done {
+  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 70%);
+  color: #5C4300;
+  border: 3px solid #B98A2E;
+  box-shadow: 0 3px 0 #8F6A20, inset 0 -3px 6px rgba(143,106,32,0.5);
+}
+.pad.done .hole { width: 10px; height: 10px; background: var(--board-dark); border-radius: 50%; position: absolute; top: 7px; right: 9px; box-shadow: inset 0 1px 2px #000; }
+.pad.current {
+  background: radial-gradient(circle at 35% 30%, #FF8A7A, var(--led-red) 70%);
+  color: #fff;
+  border: 3px solid #B03225;
+  box-shadow: 0 0 0 6px rgba(255,83,73,0.25), 0 0 26px rgba(255,83,73,0.65), 0 3px 0 #8F241A;
+}
+.pad.current .playlbl { position: absolute; bottom: -19px; font-size: 9px; letter-spacing: 2.5px; color: var(--led-red); font-weight: 700; text-shadow: 0 0 8px rgba(255,83,73,0.8); }
+.pad.locked {
+  background: rgba(10,61,37,0.5);
+  color: rgba(239,255,244,0.35);
+  border: 2.5px dashed rgba(239,255,244,0.3);
+}
+.chip-boss {
+  position: absolute;
+  width: 96px; height: 62px;
+  background: linear-gradient(180deg, var(--chip-lite), var(--chip) 45%);
+  border-radius: 7px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  color: var(--silk);
+  z-index: 2;
+  box-shadow: 0 4px 0 #10131F;
+}
+.chip-boss::before, .chip-boss::after {
+  content: '';
+  position: absolute; left: 8px; right: 8px;
+  height: 7px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 5px, transparent 5px 12px);
+}
+.chip-boss::before { top: -8px; }
+.chip-boss::after { bottom: -8px; }
+.chip-boss .b-ico { font-size: 20px; }
+.chip-boss .b-lbl { font-size: 8.5px; letter-spacing: 2px; color: var(--gold); }
+.tabbar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #0A3D25;
+  border-top: 2px solid var(--gold);
+  display: flex; padding: 8px 10px 14px;
+  z-index: 50;
+}
+.tab { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #7FAE92; }
+.tab .t-ico { font-size: 19px; display: block; }
+.tab.active { color: var(--gold); text-shadow: 0 0 10px rgba(233,185,79,0.5); }
+
+/* SCREEN 2: datasheet */
+.dim { position: absolute; inset: 0; background: rgba(4,15,9,0.72); z-index: 20; }
+.datasheet {
+  position: absolute;
+  left: 14px; right: 14px; top: 64px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  z-index: 30;
+  box-shadow: 0 22px 50px rgba(0,0,0,0.6);
+  padding: 0 0 16px;
+  text-align: center;
+  overflow: hidden;
+}
+.ds-head {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--ink);
+  color: #fff;
+  padding: 9px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.ds-head b { color: var(--gold); }
+.ds-body { padding: 14px 18px 0; }
+.ds-sym {
+  margin: 6px auto 10px;
+  width: 210px; height: 108px;
+  border: 1.6px solid rgba(36,48,63,0.35);
+  border-radius: 6px;
+  position: relative;
+  background:
+    linear-gradient(rgba(36,48,63,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36,48,63,0.06) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.ds-sym svg { position: absolute; inset: 0; }
+.datasheet h2 { font-family: 'Fredoka', sans-serif; font-size: 23px; font-weight: 700; margin: 2px 0 7px; }
+.datasheet p.lead { font-size: 12.5px; font-weight: 500; color: #5A6878; line-height: 1.55; margin-bottom: 12px; }
+.datasheet p.lead b { color: var(--ink); }
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  margin-bottom: 14px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.spec-table td {
+  border: 1.4px solid rgba(36,48,63,0.3);
+  padding: 5px 8px;
+}
+.spec-table td:first-child { text-align: left; color: #5A6878; }
+.spec-table td:last-child { text-align: right; font-weight: 700; }
+
+/* SCREENS 3&4 */
+.play-top { display: flex; align-items: center; justify-content: space-between; padding: 32px 14px 8px; position: relative; z-index: 2; }
+.icon-btn {
+  width: 34px; height: 34px;
+  background: var(--board-dark);
+  border: 1.5px solid var(--silk-dim);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: var(--silk);
+}
+.play-title { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 14px; }
+.play-stars { font-size: 15px; letter-spacing: 2px; }
+.goal-card {
+  margin: 6px 14px 10px;
+  background: rgba(10,61,37,0.55);
+  border: 1.6px solid var(--gold);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 12.5px; font-weight: 600;
+  line-height: 1.5;
+  position: relative; z-index: 2;
+}
+.goal-card b { color: var(--gold-hi); }
+.goal-card .g-tag { font-family: 'Share Tech Mono', monospace; color: var(--gold); font-size: 10px; letter-spacing: 2px; }
+.stage {
+  position: relative;
+  margin: 4px 14px;
+  background: var(--board-dark);
+  border-radius: 12px;
+  border: 2px solid #0A3D25;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.35);
+  height: 264px;
+  overflow: hidden;
+  z-index: 2;
+}
+.stage .silk-corner { position: absolute; font-family: 'Share Tech Mono', monospace; font-size: 8.5px; color: var(--silk-dim); z-index: 4; letter-spacing: 1px; }
+.screwhole {
+  position: absolute;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #FFE9B8, var(--gold) 60%);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  z-index: 4;
+}
+.screwhole::after { content: ''; position: absolute; inset: 4px; background: #071710; border-radius: 50%; }
+/* LED bar meter */
+.out-meters { position: absolute; top: 12px; left: 14px; right: 14px; display: flex; gap: 10px; z-index: 3; }
+.meter {
+  flex: 1;
+  background: var(--chip);
+  border-radius: 9px;
+  padding: 7px 9px 9px;
+  box-shadow: 0 3px 0 #10131F;
+  border: 1px solid var(--chip-lite);
+}
+.meter .m-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.meter .m-name { font-size: 9.5px; font-weight: 700; color: var(--silk-dim); letter-spacing: 1px; }
+.meter .m-val { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: var(--silk); }
+.ledbar { display: flex; gap: 2.5px; }
+.ledbar i {
+  flex: 1; height: 13px;
+  border-radius: 2.5px;
+  background: rgba(239,255,244,0.1);
+}
+.meter.blue .ledbar i.on { background: #61B8FF; box-shadow: 0 0 6px rgba(97,184,255,0.8); }
+.meter.grn .ledbar i.on { background: var(--led-grn); box-shadow: 0 0 6px rgba(74,229,129,0.8); }
+.meter.win { border-color: var(--led-grn); box-shadow: 0 3px 0 #10131F, 0 0 16px rgba(74,229,129,0.35); }
+.wire-svg { position: absolute; inset: 0; z-index: 1; }
+/* potentiometer */
+.pot-wrap {
+  position: absolute; left: 50%; top: 92px;
+  transform: translateX(-50%);
+  z-index: 3;
+  text-align: center;
+}
+.pot {
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #4A526E, var(--chip) 62%);
+  border: 3px solid #10131F;
+  box-shadow: 0 5px 0 #10131F, inset 0 2px 4px rgba(255,255,255,0.15);
+  position: relative;
+  margin: 0 auto;
+}
+.pot .tick {
+  position: absolute;
+  left: 50%; top: 5px;
+  width: 5px; height: 26px;
+  background: var(--gold);
+  border-radius: 3px;
+  transform-origin: 50% 38px;
+  transform: translateX(-50%) rotate(64deg);
+  box-shadow: 0 0 8px rgba(233,185,79,0.7);
+}
+.pot-scale { position: absolute; inset: -12px; z-index: -1; }
+.pot-lbl { margin-top: 7px; }
+.pot-lbl .lcd { font-size: 15px; display: inline-block; }
+/* pin header input */
+.pinheader {
+  position: absolute;
+  bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--chip);
+  border: 1px solid var(--chip-lite);
+  border-radius: 9px;
+  padding: 7px 14px;
+  display: flex; align-items: center; gap: 9px;
+  z-index: 3;
+  box-shadow: 0 3px 0 #10131F;
+}
+.pinheader::before {
+  content: '';
+  position: absolute;
+  top: -7px; left: 20px; right: 20px;
+  height: 7px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 6px, transparent 6px 14px);
+}
+.pinheader .ic-emoji { font-size: 21px; }
+.pinheader .ic-name { font-size: 9px; font-weight: 700; color: var(--silk-dim); letter-spacing: 1.5px; }
+.pinheader .lcd { font-size: 13px; padding: 1px 7px; }
+.controls {
+  margin: 10px 14px 0;
+  background: rgba(10,61,37,0.55);
+  border: 1.5px solid rgba(239,255,244,0.35);
+  border-radius: 12px;
+  padding: 11px 16px 13px;
+  position: relative; z-index: 2;
+}
+.controls .ctl-label {
+  display: flex; justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: var(--silk-dim);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.slider-track {
+  height: 12px; border-radius: 8px;
+  background: linear-gradient(90deg, #61B8FF 0%, rgba(0,0,0,0.35) 50%, var(--led-red) 100%);
+  border: 2px solid #0A3D25;
+  position: relative;
+}
+.slider-thumb {
+  position: absolute; top: 50%;
+  width: 26px; height: 26px;
+  background: radial-gradient(circle at 38% 32%, #4A526E, var(--chip) 65%);
+  border: 2.5px solid var(--gold);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px rgba(233,185,79,0.5);
+}
+.slider-thumb .bubble {
+  position: absolute; top: -33px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+}
+.star-goals {
+  display: flex; justify-content: center; gap: 13px;
+  margin-top: 9px;
+  font-size: 10.5px; font-weight: 600; color: var(--silk-dim);
+}
+.play-cta { display: flex; gap: 10px; margin: 10px 14px; position: relative; z-index: 2; }
+.play-cta .btn { flex: 1; font-size: 15px; padding: 12px 10px; }
+
+/* training bits */
+.dataset-strip { display: flex; gap: 6px; margin: 0 14px 8px; position: relative; z-index: 2; }
+.d-chip {
+  background: var(--chip);
+  border: 1.5px solid var(--chip-lite);
+  border-radius: 9px;
+  min-width: 44px;
+  padding: 5px 2px 4px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 2.5px 0 #10131F;
+}
+.d-chip .d-emoji { font-size: 17px; }
+.d-chip .d-tick {
+  position: absolute; top: -6px; right: -5px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  font-size: 9px; line-height: 15px;
+  text-align: center;
+  color: #06230F;
+  font-weight: 900;
+}
+.d-chip.ok { border-color: var(--led-grn); }
+.d-chip.ok .d-tick { background: var(--led-grn); box-shadow: 0 0 7px rgba(74,229,129,0.7); }
+.d-chip.bad { border-color: var(--led-red); }
+.d-chip.bad .d-tick { background: var(--led-red); color: #fff; box-shadow: 0 0 7px rgba(255,83,73,0.7); }
+.train-hud { display: flex; gap: 8px; margin: 0 14px 8px; position: relative; z-index: 2; }
+.thud {
+  flex: 1;
+  background: var(--chip);
+  border: 1px solid var(--chip-lite);
+  border-radius: 10px;
+  text-align: center;
+  padding: 5px 4px 7px;
+  box-shadow: 0 2.5px 0 #10131F;
+}
+.thud .th-k { font-size: 8.5px; font-weight: 700; letter-spacing: 2px; color: var(--silk-dim); }
+.thud .lcd { font-size: 14px; margin-top: 3px; display: inline-block; padding: 1px 8px; }
+.loss-spark { height: 24px; margin-top: 2px; }
+/* DIP neuron */
+.neuron-dip {
+  position: absolute; left: 50%; top: 88px;
+  transform: translateX(-50%);
+  width: 168px;
+  background: linear-gradient(180deg, var(--chip-lite), var(--chip) 40%);
+  border-radius: 8px;
+  z-index: 3;
+  padding: 8px 12px 10px;
+  text-align: center;
+  box-shadow: 0 4px 0 #10131F;
+}
+.neuron-dip::before, .neuron-dip::after {
+  content: '';
+  position: absolute;
+  top: 12px; bottom: 12px;
+  width: 9px;
+  background: repeating-linear-gradient(180deg, var(--gold) 0 7px, transparent 7px 17px);
+}
+.neuron-dip::before { left: -10px; }
+.neuron-dip::after { right: -10px; }
+.neuron-dip .c-kind { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--gold); letter-spacing: 2px; }
+.neuron-dip .dot { position: absolute; top: 7px; left: 10px; width: 7px; height: 7px; border-radius: 50%; background: #10131F; }
+.wbars { display: flex; gap: 9px; justify-content: center; margin-top: 6px; }
+.wbar { width: 30px; }
+.wbar .wb-track {
+  height: 42px;
+  background: #10131F;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column-reverse; gap: 2px; padding: 2px;
+}
+.wbar .seg { height: 6px; border-radius: 1.5px; background: rgba(239,255,244,0.08); }
+.wbar .seg.on.g { background: var(--led-grn); box-shadow: 0 0 5px rgba(74,229,129,0.8); }
+.wbar .seg.on.r { background: var(--led-red); box-shadow: 0 0 5px rgba(255,83,73,0.8); }
+.wbar .wb-lbl { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--silk-dim); margin-top: 3px; letter-spacing: 0.5px; }
+
+/* SCREEN 5 */
+.confetti { position: absolute; border-radius: 2px; z-index: 25; }
+.win-card {
+  position: absolute;
+  left: 16px; right: 16px; top: 104px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 12px;
+  z-index: 30;
+  box-shadow: 0 22px 50px rgba(0,0,0,0.6);
+  text-align: center;
+  padding: 50px 18px 18px;
+}
+.win-stars {
+  position: absolute; top: -34px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 4px;
+}
+.wstar { font-size: 44px; color: var(--gold); text-shadow: 0 3px 0 #B98A2E; filter: drop-shadow(0 5px 10px rgba(233,185,79,0.5)); }
+.wstar.mid { font-size: 60px; margin-bottom: 8px; }
+.wstar.off { color: #E2DACA; text-shadow: 0 3px 0 #CFC5B0; filter: none; }
+.stamp {
+  position: absolute;
+  top: 52px; right: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--btn-grn);
+  border: 2.5px solid var(--btn-grn);
+  border-radius: 6px;
+  padding: 3px 8px;
+  transform: rotate(11deg);
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+.win-card h2 { font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 700; }
+.win-card .w-sub { font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: #5A6878; margin: 3px 0 13px; letter-spacing: 0.5px; }
+.stat-rows { margin: 0 4px 12px; border: 1.5px solid rgba(36,48,63,0.3); border-radius: 8px; overflow: hidden; }
+.stat-row {
+  display: flex; justify-content: space-between;
+  padding: 7px 12px;
+  font-size: 12px; font-weight: 600;
+  border-bottom: 1.5px solid rgba(36,48,63,0.18);
+  background: #fff;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row .sr-v { font-family: 'Share Tech Mono', monospace; }
+.stat-row .sr-v.good { color: var(--btn-grn); }
+.stat-row .sr-v.tip { color: var(--btn-red); }
+.xp-bar {
+  background: #E9E2D2;
+  border-radius: 8px;
+  height: 16px;
+  margin: 0 4px 14px;
+  overflow: hidden;
+  position: relative;
+}
+.xp-fill { width: 68%; height: 100%; background: repeating-linear-gradient(-45deg, var(--gold) 0 8px, var(--gold-hi) 8px 16px); }
+.xp-bar .xp-lbl {
+  position: absolute; inset: 0;
+  font-size: 9px; font-weight: 800; letter-spacing: 1px;
+  color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.win-buttons { display: flex; flex-direction: column; gap: 9px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">🧠 Neuro<span>Quest</span> — PCB workbench</h1>
+<p class="page-sub">Direction D · real electronics: solder-mask green, gold traces, DIP chips, LED bars, 7-seg readouts, a potentiometer for every weight</p>
+
+<div class="frames">
+
+  <!-- SCREEN 1: motherboard map -->
+  <div class="frame-wrap">
+    <div class="frame-label">1 · Journey Map — the motherboard</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <svg class="board-svg" viewBox="0 0 300 632">
+        <path d="M20 140 L20 560 M280 180 L280 560 M40 610 L260 610" stroke="rgba(233,185,79,0.18)" stroke-width="2"/>
+      </svg>
+      <div class="hud">
+        <div class="avatar">🧠</div>
+        <div class="wordmark">Neuro<em>Quest</em></div>
+        <div class="hud-stat"><span class="star">★</span> 23</div>
+      </div>
+      <div class="sector-bar">
+        <div>
+          <div class="sb-title">SECTOR 02 · WEIGHTS</div>
+          <div class="sb-sub">every wire has a volume knob</div>
+        </div>
+        <div class="lcd">3/6</div>
+      </div>
+      <div class="mapwrap">
+        <svg class="wire-svg" viewBox="0 0 286 396">
+          <path d="M85 34 L85 62 L110 84 L198 84 L198 118 L110 118 L85 142 L85 168
+                   L120 208 L146 232
+                   L198 276 L198 306 L110 306 L85 330 L85 344
+                   L120 372 L143 372"
+                stroke="var(--gold)" stroke-width="3.4" fill="none" stroke-linejoin="round" opacity="0.85"/>
+          <circle cx="198" cy="100" r="4.5" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.5"/>
+          <circle cx="85" cy="155" r="4.5" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.5"/>
+          <circle cx="198" cy="290" r="4.5" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.5"/>
+          <path d="M240 40 L262 40 L262 80" stroke="rgba(233,185,79,0.3)" stroke-width="2" fill="none"/>
+          <path d="M30 240 L52 240" stroke="rgba(233,185,79,0.3)" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="pad done" style="left:54px;top:4px"><div class="hole"></div><span class="n-num">4</span><span class="n-stars">★★★</span></div>
+        <div class="pad done" style="left:167px;top:54px"><div class="hole"></div><span class="n-num">5</span><span class="n-stars">★★<span style="opacity:.3">★</span></span></div>
+        <div class="pad done" style="left:54px;top:112px"><div class="hole"></div><span class="n-num">6</span><span class="n-stars">★<span style="opacity:.3">★★</span></span></div>
+        <div class="pad current" style="left:106px;top:196px"><span class="n-num">7</span><span class="playlbl">PLAY</span></div>
+        <div class="pad locked" style="left:167px;top:260px"><span class="n-num">🔒</span></div>
+        <div class="pad locked" style="left:54px;top:300px"><span class="n-num">🔒</span></div>
+        <div class="chip-boss" style="left:95px;top:344px"><span class="b-ico">🏆</span><span class="b-lbl">BOSS IC-02</span></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab active"><span class="t-ico">🗺️</span>Journey</div>
+        <div class="tab"><span class="t-ico">🔬</span>Free Lab</div>
+        <div class="tab"><span class="t-ico">🏅</span>Awards</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: datasheet intro -->
+  <div class="frame-wrap">
+    <div class="frame-label">2 · Chapter Intro — the datasheet</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="hud" style="filter:blur(1px)">
+        <div class="avatar">🧠</div>
+        <div class="wordmark">Neuro<em>Quest</em></div>
+        <div class="hud-stat"><span class="star">★</span> 23</div>
+      </div>
+      <div class="dim"></div>
+      <div class="datasheet">
+        <div class="ds-head"><span>PART No. <b>WGT-01</b></span><span>DATASHEET · REV A</span></div>
+        <div class="ds-body">
+          <div class="ds-sym">
+            <svg viewBox="0 0 210 108">
+              <path d="M14 54 L64 54" stroke="#24303F" stroke-width="2.5"/>
+              <circle cx="14" cy="54" r="4" fill="none" stroke="#24303F" stroke-width="2.5"/>
+              <path d="M64 22 L64 86 L128 54 Z" fill="#FFD98A" stroke="#24303F" stroke-width="2.5" stroke-linejoin="round"/>
+              <text x="84" y="59" font-family="Share Tech Mono" font-size="13" fill="#24303F">×w</text>
+              <path d="M128 54 L196 54" stroke="#24303F" stroke-width="2.5"/>
+              <circle cx="196" cy="54" r="4" fill="#24303F"/>
+              <text x="10" y="42" font-family="Share Tech Mono" font-size="9" fill="#5A6878">IN</text>
+              <text x="178" y="42" font-family="Share Tech Mono" font-size="9" fill="#5A6878">OUT</text>
+            </svg>
+          </div>
+          <h2>The Weight</h2>
+          <p class="lead">
+            An <b>amplifier</b> on every wire. It multiplies the signal by its
+            <b>weight</b>: crank it up to make the signal shout, drop it below
+            zero to make it <b>argue against</b>. Training a network = tuning
+            thousands of these knobs.
+          </p>
+          <table class="spec-table">
+            <tr><td>RANGE</td><td>−3.0 … +3.0</td></tr>
+            <tr><td>LEVELS IN SECTOR</td><td>6</td></tr>
+            <tr><td>MAX STARS</td><td>18 ★</td></tr>
+          </table>
+          <div class="btn btn-red" style="width:100%">POWER ON ▶</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: pot puzzle -->
+  <div class="frame-wrap">
+    <div class="frame-label">3 · Puzzle — tune the potentiometer</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 2-3 · Louder!</div>
+        <div class="play-stars"><span class="star">★</span><span class="star">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="goal-card">
+        <span class="g-tag">◎ GOAL</span><br>
+        Make the board at least <b>90% sure</b> that 🔥 Fire is <b>WARM</b>
+      </div>
+      <div class="stage">
+        <span class="silk-corner" style="top:5px;left:34px">NQ-BRD-023</span>
+        <span class="silk-corner" style="bottom:5px;right:34px">REV A</span>
+        <div class="screwhole" style="top:6px;left:6px"></div>
+        <div class="screwhole" style="top:6px;right:6px"></div>
+        <div class="screwhole" style="bottom:6px;left:6px"></div>
+        <div class="screwhole" style="bottom:6px;right:6px"></div>
+        <div class="out-meters">
+          <div class="meter blue">
+            <div class="m-head"><span class="m-name">❄️ COLD</span><span class="m-val">12%</span></div>
+            <div class="ledbar"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="meter grn win">
+            <div class="m-head"><span class="m-name">🔥 WARM</span><span class="m-val">88%</span></div>
+            <div class="ledbar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+          </div>
+        </div>
+        <svg class="wire-svg" viewBox="0 0 272 264">
+          <path d="M136 214 L136 186" stroke="var(--gold)" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+          <path d="M136 92 L136 80 L162 62 L200 62 L200 56" stroke="var(--gold)" stroke-width="3.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="136" cy="200" r="3.6" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.4"/>
+          <circle cx="200" cy="59" r="3.6" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.4"/>
+          <path d="M136 80 L110 62 L72 62 L72 56" stroke="rgba(239,255,244,0.22)" stroke-width="2.2" fill="none" stroke-dasharray="4 5"/>
+        </svg>
+        <div class="pot-wrap">
+          <div class="pot">
+            <div class="pot-scale">
+              <svg viewBox="0 0 110 110">
+                <path d="M20 88 A 44 44 0 1 1 90 88" stroke="rgba(239,255,244,0.4)" stroke-width="2" fill="none" stroke-dasharray="2 7"/>
+                <text x="8" y="103" font-family="Share Tech Mono" font-size="9" fill="rgba(239,255,244,0.6)">-3</text>
+                <text x="90" y="103" font-family="Share Tech Mono" font-size="9" fill="rgba(239,255,244,0.6)">+3</text>
+              </svg>
+            </div>
+            <div class="tick"></div>
+          </div>
+          <div class="pot-lbl"><span class="lcd">W = 2.1</span></div>
+        </div>
+        <div class="pinheader">
+          <span class="ic-emoji">🔥</span>
+          <span>
+            <span class="ic-name">J1 · TEMPERATURE</span><br>
+            <span class="lcd">1.00</span>
+          </span>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="ctl-label"><span>WEIGHT · VR1</span><span>-3 .. +3</span></div>
+        <div class="slider-track">
+          <div class="slider-thumb" style="left:78%"><div class="bubble lcd">2.1</div></div>
+        </div>
+        <div class="star-goals">
+          <span><span class="star">★</span> solve</span>
+          <span><span class="star">★★</span> ≥ 90%</span>
+          <span><span class="star">★★★</span> ≥ 97%</span>
+        </div>
+      </div>
+      <div class="play-cta">
+        <div class="btn btn-grn">⏻ TEST ALL CARDS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: train the chip -->
+  <div class="frame-wrap">
+    <div class="frame-label">4 · Puzzle — train the chip</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 4-2 · Rain Radar</div>
+        <div class="play-stars"><span class="star off">★</span><span class="star off">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="goal-card">
+        <span class="g-tag">◎ GOAL</span><br>
+        <b>Train</b> chip U1 to sort all 8 skies — under <b>40 epochs</b> for ★★★
+      </div>
+      <div class="dataset-strip">
+        <div class="d-chip ok"><div class="d-emoji">☀️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip ok"><div class="d-emoji">🌤️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip bad"><div class="d-emoji">💨</div><div class="d-tick">✗</div></div>
+        <div class="d-chip ok"><div class="d-emoji">🌵</div><div class="d-tick">✓</div></div>
+        <div class="d-chip ok"><div class="d-emoji">☁️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip bad"><div class="d-emoji">🌧️</div><div class="d-tick">✗</div></div>
+        <div class="d-chip ok"><div class="d-emoji">⛈️</div><div class="d-tick">✓</div></div>
+      </div>
+      <div class="train-hud">
+        <div class="thud"><div class="th-k">EPOCH</div><span class="lcd">017</span></div>
+        <div class="thud"><div class="th-k">SORTED</div><span class="lcd">6/8</span></div>
+        <div class="thud">
+          <div class="th-k">LOSS</div>
+          <svg class="loss-spark" viewBox="0 0 60 24">
+            <path d="M2 5 C 12 7, 18 15, 28 17 S 50 20, 58 20" stroke="#FF5349" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stage" style="height:202px">
+        <span class="silk-corner" style="top:5px;left:34px">NQ-BRD-042</span>
+        <div class="screwhole" style="top:6px;left:6px"></div>
+        <div class="screwhole" style="top:6px;right:6px"></div>
+        <div class="screwhole" style="bottom:6px;left:6px"></div>
+        <div class="screwhole" style="bottom:6px;right:6px"></div>
+        <div class="out-meters">
+          <div class="meter blue">
+            <div class="m-head"><span class="m-name">🌵 DRY</span></div>
+            <div class="ledbar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="meter grn win">
+            <div class="m-head"><span class="m-name">🌧️ RAIN</span></div>
+            <div class="ledbar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <svg class="wire-svg" viewBox="0 0 272 202">
+          <path d="M104 164 L104 146 L118 134 L118 126" stroke="var(--gold)" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M168 164 L168 146 L154 134 L154 126" stroke="var(--gold)" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M136 88 L136 78 L162 60 L200 60 L200 52" stroke="var(--gold)" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="104" cy="154" r="3.4" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.2"/>
+          <circle cx="168" cy="154" r="3.4" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.2"/>
+          <circle cx="200" cy="56" r="3.4" fill="#0A3D25" stroke="var(--gold)" stroke-width="2.2"/>
+        </svg>
+        <div class="neuron-dip">
+          <div class="dot"></div>
+          <div class="c-kind">U1 · NEURON</div>
+          <div class="wbars">
+            <div class="wbar">
+              <div class="wb-track">
+                <span class="seg on g"></span><span class="seg on g"></span><span class="seg on g"></span><span class="seg on g"></span><span class="seg"></span>
+              </div>
+              <div class="wb-lbl">W·CLD</div>
+            </div>
+            <div class="wbar">
+              <div class="wb-track">
+                <span class="seg on g"></span><span class="seg on g"></span><span class="seg on g"></span><span class="seg"></span><span class="seg"></span>
+              </div>
+              <div class="wb-lbl">W·HUM</div>
+            </div>
+            <div class="wbar">
+              <div class="wb-track">
+                <span class="seg on r"></span><span class="seg on r"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+              </div>
+              <div class="wb-lbl">BIAS</div>
+            </div>
+          </div>
+        </div>
+        <div class="pinheader" style="padding:6px 12px">
+          <span class="ic-emoji">☁️</span>
+          <span>
+            <span class="ic-name">J1 · CLD .85 · HUM .60</span><br>
+            <span class="lcd" style="font-size:12px">OVERCAST</span>
+          </span>
+        </div>
+      </div>
+      <div class="play-cta">
+        <div class="btn btn-ghost" style="flex:0.6">STEP</div>
+        <div class="btn btn-red">⚡ TRAIN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: QC passed -->
+  <div class="frame-wrap">
+    <div class="frame-label">5 · Level Complete — QC report</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top" style="filter:blur(1.5px)">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 4-2 · Rain Radar</div>
+        <div class="play-stars"><span class="star">★</span><span class="star">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="dim"></div>
+      <div class="confetti" style="top:70px;left:36px;width:9px;height:13px;background:var(--gold);transform:rotate(24deg)"></div>
+      <div class="confetti" style="top:52px;left:120px;width:7px;height:7px;background:var(--led-grn);border-radius:50%"></div>
+      <div class="confetti" style="top:88px;right:48px;width:9px;height:12px;background:var(--led-red);transform:rotate(-30deg)"></div>
+      <div class="confetti" style="top:40px;right:104px;width:6px;height:10px;background:#61B8FF;transform:rotate(45deg)"></div>
+      <div class="confetti" style="top:390px;left:30px;width:8px;height:11px;background:var(--gold);transform:rotate(60deg)"></div>
+      <div class="confetti" style="top:420px;right:36px;width:7px;height:7px;background:var(--led-grn);border-radius:50%"></div>
+      <div class="win-card">
+        <div class="win-stars">
+          <span class="wstar">★</span><span class="wstar mid">★</span><span class="wstar off">★</span>
+        </div>
+        <div class="stamp">QC PASS</div>
+        <h2>Chip trained!</h2>
+        <div class="w-sub">BOARD NQ-042 · U1 SORTED EVERY SKY</div>
+        <div class="stat-rows">
+          <div class="stat-row"><span>Cards sorted</span><span class="sr-v good">8 / 8</span></div>
+          <div class="stat-row"><span>Epochs used</span><span class="sr-v">52 <span style="color:#98A3B1">(par 40)</span></span></div>
+          <div class="stat-row"><span>★★★ tip</span><span class="sr-v tip">hotter learning rate</span></div>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-fill"></div>
+          <div class="xp-lbl">+40 XP · SYNAPSE LEVEL 5</div>
+        </div>
+        <div class="win-buttons">
+          <div class="btn btn-grn" style="font-size:15px">CONTINUE ▶</div>
+          <div class="btn btn-ghost" style="color:#5A6878;border-color:#C9C0AC">↻ IMPROVE FOR ★★★</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

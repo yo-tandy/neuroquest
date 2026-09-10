@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroQuest — Circuit Blueprint Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@500;600;700;800&family=Architects+Daughter&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bp: #1D5FB4;
+  --bp-deep: #174E98;
+  --bp-line: rgba(255,255,255,0.16);
+  --chalk: #FFFFFF;
+  --paper: #FFF9EE;
+  --ink: #2B3A67;
+  --copper: #FFB258;
+  --orange: #FF7A3D;
+  --orange-deep: #E05A1D;
+  --gold: #FFCD3C;
+  --mint: #7DE8C3;
+  --green: #17A97D;
+  --tape: rgba(255,236,170,0.85);
+  --red-stamp: #E8543F;
+  --pin: #C9D2EA;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Shantell Sans', cursive;
+  background: #0F2C55;
+  background-image: radial-gradient(ellipse at 25% 15%, #16407B 0%, transparent 55%),
+                    radial-gradient(ellipse at 80% 85%, #0C2140 0%, transparent 55%);
+  color: var(--chalk);
+  min-height: 100vh;
+  padding: 34px 30px 50px;
+}
+h1.page-title { text-align: center; font-size: 27px; font-weight: 800; }
+h1.page-title span { color: var(--gold); }
+p.page-sub { text-align: center; color: #9FB8DF; font-size: 14px; margin: 4px 0 30px; }
+.frames { display: flex; gap: 26px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.frame-wrap { text-align: center; }
+.frame-label { font-size: 14px; margin-bottom: 10px; color: #BFD3F2; font-weight: 700; }
+.phone {
+  width: 300px; height: 632px;
+  background: var(--bp);
+  background-image:
+    linear-gradient(var(--bp-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bp-line) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  border-radius: 34px;
+  border: 7px solid #0A1B33;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  overflow: hidden;
+  position: relative;
+  text-align: left;
+}
+.notch {
+  position: absolute; top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 84px; height: 16px;
+  background: #0A1B33;
+  border-radius: 10px;
+  z-index: 100;
+}
+/* faint schematic doodles on every screen */
+.doodle { position: absolute; z-index: 0; opacity: 0.6; pointer-events: none; }
+
+/* atoms */
+.btn {
+  font-family: 'Shantell Sans', cursive;
+  font-weight: 800; font-size: 14.5px;
+  color: #fff;
+  border: 2.5px solid #fff;
+  border-radius: 14px;
+  padding: 11px 22px;
+  display: inline-block;
+  text-align: center;
+}
+.btn-orange { background: var(--orange); box-shadow: 3px 4px 0 rgba(10,27,51,0.5); transform: rotate(-0.6deg); }
+.btn-mint { background: var(--green); box-shadow: 3px 4px 0 rgba(10,27,51,0.5); transform: rotate(0.5deg); }
+.btn-paperghost { background: transparent; color: rgba(255,255,255,0.85); border-style: dashed; box-shadow: none; }
+.btn-paperghost.onpaper { color: var(--ink); border-color: var(--ink); opacity: 0.65; }
+.star { color: var(--gold); text-shadow: 1px 1.5px 0 rgba(10,27,51,0.35); }
+.star.off { color: rgba(255,255,255,0.28); text-shadow: none; }
+.tape {
+  position: absolute;
+  width: 58px; height: 17px;
+  background: var(--tape);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.refdes {
+  position: absolute;
+  font-family: 'Architects Daughter', cursive;
+  font-size: 10px;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 1px;
+  z-index: 4;
+}
+.sticker {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 5px 0 rgba(10,27,51,0.4);
+  position: relative;
+}
+.sticker::after {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1.5px dashed rgba(43,58,103,0.25);
+  border-radius: 9px;
+  pointer-events: none;
+}
+
+/* SCREEN 1: map = PCB traces & pads */
+.hud { display: flex; align-items: center; justify-content: space-between; padding: 34px 16px 8px; position: relative; z-index: 2; }
+.hud .avatar {
+  width: 40px; height: 40px;
+  background: var(--paper);
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 2px 3px 0 rgba(10,27,51,0.4);
+  transform: rotate(-4deg);
+}
+.hud .wordmark { font-weight: 800; font-size: 17px; }
+.hud .wordmark em { font-style: normal; color: var(--gold); }
+.hud-stat {
+  background: rgba(255,255,255,0.12);
+  border: 1.6px solid rgba(255,255,255,0.55);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-weight: 800; font-size: 13px;
+}
+.chapter-ribbon {
+  margin: 10px 18px;
+  border: 2px solid #fff;
+  border-radius: 13px;
+  padding: 9px 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(255,255,255,0.08);
+  transform: rotate(-0.5deg);
+  position: relative; z-index: 2;
+}
+.cr-title { font-size: 13.5px; font-weight: 800; }
+.cr-sub { font-family: 'Architects Daughter', cursive; font-size: 11.5px; color: #CFE0F8; }
+.cr-progress {
+  font-weight: 800;
+  background: var(--gold); color: #5C4300;
+  padding: 3px 9px;
+  border-radius: 9px;
+  font-size: 12px;
+  border: 2px solid #fff;
+  transform: rotate(3deg);
+}
+.path { position: relative; padding: 4px 0; z-index: 1; }
+.trace-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.node-row { position: relative; display: flex; justify-content: center; margin: 13px 0; z-index: 2; }
+.node-row.l { transform: translateX(-58px); }
+.node-row.r { transform: translateX(58px); }
+.node {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-weight: 800;
+  border: 2.5px solid #fff;
+  position: relative;
+}
+.node::before { /* solder pad ring */
+  content: '';
+  position: absolute; inset: -7px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+}
+.node .n-num { font-size: 19px; line-height: 1.05; }
+.node .n-stars { font-size: 9px; letter-spacing: 1px; }
+.node.done { background: var(--paper); color: var(--ink); box-shadow: 2px 4px 0 rgba(10,27,51,0.4); transform: rotate(-2deg); }
+.node.done.gold { background: var(--gold); color: #5C4300; transform: rotate(2deg); }
+.node.current {
+  background: var(--orange); color: #fff;
+  box-shadow: 2px 4px 0 rgba(10,27,51,0.5), 0 0 0 6px rgba(255,122,61,0.3);
+  transform: scale(1.15) rotate(-2deg);
+}
+.node.current .playlbl {
+  font-family: 'Architects Daughter', cursive;
+  position: absolute; bottom: -22px;
+  font-size: 12px; color: #FFD9C4;
+}
+.node.locked { background: rgba(10,27,51,0.25); color: rgba(255,255,255,0.4); border-style: dashed; border-color: rgba(255,255,255,0.4); }
+.node.locked::before { border-style: dashed; }
+.boss-node {
+  width: 84px; height: 66px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 2.5px solid #fff;
+  box-shadow: 3px 5px 0 rgba(10,27,51,0.45);
+  color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(1.5deg);
+  position: relative;
+}
+.boss-node::before, .boss-node::after { /* DIP pins */
+  content: '';
+  position: absolute;
+  top: 12px; bottom: 12px;
+  width: 8px;
+  background: repeating-linear-gradient(180deg, var(--pin) 0 6px, transparent 6px 13px);
+}
+.boss-node::before { left: -10px; }
+.boss-node::after { right: -10px; }
+.boss-node .b-ico { font-size: 22px; }
+.boss-node .b-lbl { font-family: 'Architects Daughter', cursive; font-size: 9.5px; font-weight: 700; }
+.tabbar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #12386B;
+  border-top: 2px solid rgba(255,255,255,0.5);
+  display: flex; padding: 8px 10px 14px;
+  z-index: 50;
+}
+.tab { flex: 1; text-align: center; font-size: 10px; font-weight: 800; color: #8FA9D4; }
+.tab .t-ico { font-size: 19px; display: block; }
+.tab.active { color: var(--gold); }
+
+/* SCREEN 2: schematic sheet */
+.dim { position: absolute; inset: 0; background: rgba(8,20,40,0.62); z-index: 20; }
+.intro-card {
+  position: absolute;
+  left: 14px; right: 14px; top: 64px;
+  z-index: 30;
+  padding: 18px 16px 16px;
+  text-align: center;
+  transform: rotate(-0.8deg);
+}
+.intro-card .tape.t1 { top: -9px; left: 34px; transform: rotate(-5deg); }
+.intro-card .tape.t2 { top: -9px; right: 34px; transform: rotate(4deg); }
+.intro-chip {
+  font-family: 'Architects Daughter', cursive;
+  color: var(--ink);
+  display: inline-block;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 2px;
+  border-bottom: 2px solid var(--orange);
+  padding-bottom: 2px;
+}
+.intro-hero {
+  margin: 13px auto 10px;
+  width: 120px; height: 86px;
+  position: relative;
+  filter: drop-shadow(3px 4px 0 rgba(43,58,103,0.25));
+}
+.intro-hero .opamp-shape {
+  width: 100%; height: 100%;
+  background: #fff;
+  clip-path: polygon(50% 0%, 100% 96%, 0% 96%);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 12px;
+  font-size: 30px;
+}
+.intro-hero .spark { position: absolute; font-size: 17px; }
+.intro-hero .s1 { top: -8px; right: -4px; }
+.intro-hero .s2 { bottom: -2px; left: -12px; font-size: 13px; }
+.intro-card h2 { font-size: 24px; font-weight: 800; margin: 2px 0 7px; }
+.intro-card p.lead {
+  font-size: 12.5px; font-weight: 600;
+  color: #55618E;
+  line-height: 1.5;
+  margin-bottom: 11px;
+}
+.intro-card p.lead b { color: var(--ink); }
+.mini-diagram {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--bp);
+  border-radius: 12px;
+  padding: 10px 8px;
+  margin-bottom: 12px;
+  font-weight: 800; font-size: 12px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.mini-diagram .md-box { background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.7); border-radius: 9px; padding: 6px 9px; z-index: 1; }
+.mini-tri {
+  width: 0; height: 0;
+  border-left: 30px solid var(--gold);
+  border-top: 19px solid transparent;
+  border-bottom: 19px solid transparent;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(1.5px 2px 0 rgba(10,27,51,0.4));
+}
+.mini-tri span {
+  position: absolute;
+  left: -30px; top: -7px;
+  width: 26px;
+  font-size: 9.5px;
+  color: #5C4300;
+  text-align: left;
+}
+.mini-diagram .md-wire { position: absolute; top: 50%; left: 8%; right: 8%; height: 2px; background: rgba(255,255,255,0.5); }
+.titleblock {
+  display: flex;
+  border: 1.6px solid rgba(43,58,103,0.45);
+  margin-bottom: 12px;
+  font-family: 'Architects Daughter', cursive;
+  font-size: 10px;
+  color: var(--ink);
+}
+.titleblock div { flex: 1; padding: 4px 6px; border-right: 1.6px solid rgba(43,58,103,0.45); text-align: left; }
+.titleblock div:last-child { border-right: none; }
+.titleblock b { display: block; font-size: 12.5px; font-family: 'Shantell Sans', cursive; }
+
+/* SCREENS 3&4 */
+.play-top { display: flex; align-items: center; justify-content: space-between; padding: 32px 14px 8px; }
+.icon-btn {
+  width: 34px; height: 34px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.7);
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #fff;
+}
+.play-title { font-weight: 800; font-size: 14px; }
+.play-stars { font-size: 15px; letter-spacing: 2px; }
+.goal-card {
+  margin: 6px 14px 10px;
+  padding: 9px 13px 10px;
+  font-size: 12.5px; font-weight: 700;
+  line-height: 1.45;
+  transform: rotate(0.4deg);
+}
+.goal-card .g-tag { font-family: 'Architects Daughter', cursive; color: var(--orange-deep); font-size: 12px; letter-spacing: 1px; }
+.stage {
+  position: relative;
+  margin: 4px 14px;
+  border: 2px solid rgba(255,255,255,0.65);
+  border-radius: 16px;
+  height: 268px;
+  overflow: hidden;
+}
+.stage .corner { position: absolute; font-family: 'Architects Daughter', cursive; font-size: 9px; color: rgba(255,255,255,0.55); z-index: 4; }
+.out-meters { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 10px; z-index: 2; }
+.meter { flex: 1; padding: 7px 10px 9px; border-radius: 12px; }
+.meter .m-head { display: flex; justify-content: space-between; align-items: center; }
+.meter .m-name { font-size: 10px; font-weight: 800; color: #55618E; letter-spacing: 1px; }
+.meter .m-led {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #D5CDBB;
+  border: 1.5px solid rgba(43,58,103,0.4);
+}
+.meter.win .m-led { background: var(--green); box-shadow: 0 0 7px rgba(23,169,125,0.8); }
+.meter .m-val { font-size: 18px; font-weight: 800; }
+.meter .m-bar { height: 8px; background: rgba(43,58,103,0.15); border-radius: 6px; margin-top: 4px; overflow: hidden; }
+.meter .m-fill { height: 100%; border-radius: 6px; }
+.meter.win { outline: 2.5px solid var(--gold); outline-offset: 1px; }
+.wire-svg { position: absolute; inset: 0; z-index: 1; }
+/* op-amp amplifier */
+.opamp-wrap {
+  position: absolute; left: 50%; top: 96px;
+  transform: translateX(-50%);
+  filter: drop-shadow(3px 4px 0 rgba(10,27,51,0.45));
+  z-index: 3;
+}
+.opamp {
+  width: 116px; height: 84px;
+  background: var(--paper);
+  clip-path: polygon(50% 0%, 100% 96%, 0% 96%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  padding-bottom: 9px;
+  text-align: center;
+  color: var(--ink);
+}
+.opamp .c-kind { font-family: 'Architects Daughter', cursive; font-size: 9.5px; color: var(--orange-deep); letter-spacing: 1px; font-weight: 700; }
+.opamp .c-val { font-size: 20px; font-weight: 800; line-height: 1.1; }
+/* input connector */
+.input-chip {
+  position: absolute;
+  bottom: 12px; left: 50%;
+  transform: translateX(-50%) rotate(0.8deg);
+  padding: 7px 15px;
+  display: flex; align-items: center; gap: 9px;
+  z-index: 3;
+  border-radius: 12px;
+}
+.input-chip::before { /* header pins on top */
+  content: '';
+  position: absolute;
+  top: -8px; left: 22px; right: 22px;
+  height: 8px;
+  background: repeating-linear-gradient(90deg, var(--pin) 0 7px, transparent 7px 16px);
+}
+.input-chip .ic-emoji { font-size: 22px; }
+.input-chip .ic-name { font-family: 'Architects Daughter', cursive; font-size: 10px; font-weight: 700; color: #55618E; }
+.input-chip .ic-val { font-size: 15px; font-weight: 800; }
+.controls {
+  margin: 10px 14px 0;
+  padding: 11px 16px 13px;
+  border-radius: 14px;
+}
+.controls .ctl-label {
+  display: flex; justify-content: space-between;
+  font-family: 'Architects Daughter', cursive;
+  font-size: 12px; font-weight: 700; color: #55618E;
+  margin-bottom: 8px;
+}
+.slider-track {
+  height: 12px; border-radius: 8px;
+  background: linear-gradient(90deg, #7FB3F5 0%, #E8E0CE 50%, var(--orange) 100%);
+  border: 2px solid var(--ink);
+  position: relative;
+}
+.slider-thumb {
+  position: absolute; top: 50%;
+  width: 28px; height: 28px;
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 2px 3px 0 rgba(43,58,103,0.3);
+}
+.slider-thumb .bubble {
+  position: absolute; top: -33px; left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px; font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.star-goals {
+  display: flex; justify-content: center; gap: 13px;
+  margin-top: 9px;
+  font-family: 'Architects Daughter', cursive;
+  font-size: 11px; font-weight: 700; color: #55618E;
+}
+.star-goals .star { text-shadow: none; }
+.play-cta { display: flex; gap: 10px; margin: 10px 14px; }
+.play-cta .btn { flex: 1; font-size: 15px; padding: 12px 10px; }
+
+/* training bits */
+.dataset-strip { display: flex; gap: 6px; margin: 0 14px 8px; }
+.d-chip {
+  background: var(--paper);
+  border: 2px solid #fff;
+  border-radius: 11px;
+  min-width: 44px;
+  padding: 5px 2px 4px;
+  text-align: center;
+  position: relative;
+  box-shadow: 1.5px 2.5px 0 rgba(10,27,51,0.35);
+}
+.d-chip:nth-child(odd) { transform: rotate(-2deg); }
+.d-chip:nth-child(even) { transform: rotate(1.5deg); }
+.d-chip .d-emoji { font-size: 17px; }
+.d-chip .d-tick {
+  position: absolute; top: -7px; right: -6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  font-size: 9px; line-height: 14px;
+  text-align: center;
+  color: #fff;
+  font-weight: 900;
+  border: 1.5px solid #fff;
+}
+.d-chip.ok .d-tick { background: var(--green); }
+.d-chip.bad .d-tick { background: var(--red-stamp); }
+.train-hud { display: flex; gap: 8px; margin: 0 14px 8px; }
+.thud { flex: 1; text-align: center; padding: 5px 4px 7px; border-radius: 12px; }
+.thud .th-k { font-family: 'Architects Daughter', cursive; font-size: 10px; font-weight: 700; color: #55618E; }
+.thud .th-v { font-size: 16px; font-weight: 800; }
+.thud .th-v.good { color: #0E8A63; }
+.loss-spark { height: 22px; margin-top: 1px; }
+/* DIP-chip neuron */
+.neuron-node {
+  position: absolute; left: 50%; top: 92px;
+  transform: translateX(-50%) rotate(-1deg);
+  width: 168px;
+  z-index: 3;
+  padding: 7px 10px 10px;
+  text-align: center;
+  border-radius: 10px;
+}
+.neuron-node::before, .neuron-node::after { /* DIP pins */
+  content: '';
+  position: absolute;
+  top: 14px; bottom: 14px;
+  width: 9px;
+  background: repeating-linear-gradient(180deg, var(--pin) 0 7px, transparent 7px 16px);
+}
+.neuron-node::before { left: -11px; }
+.neuron-node::after { right: -11px; }
+.neuron-node .c-kind { font-family: 'Architects Daughter', cursive; font-size: 10.5px; color: #7C4DB8; letter-spacing: 1px; font-weight: 700; }
+.neuron-node .notch-dot {
+  position: absolute; top: 6px; left: 10px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(43,58,103,0.35);
+}
+.wbars { display: flex; gap: 8px; justify-content: center; margin-top: 5px; }
+.wbar { width: 30px; }
+.wbar .wb-track { height: 42px; background: rgba(43,58,103,0.12); border-radius: 7px; position: relative; overflow: hidden; border: 1.5px solid rgba(43,58,103,0.35); }
+.wbar .wb-fill { position: absolute; bottom: 0; left: 0; right: 0; }
+.wbar .wb-lbl { font-family: 'Architects Daughter', cursive; font-size: 9px; font-weight: 700; color: #55618E; margin-top: 3px; }
+
+/* SCREEN 5 */
+.confetti { position: absolute; border-radius: 2px; z-index: 25; }
+.win-card {
+  position: absolute;
+  left: 16px; right: 16px; top: 106px;
+  z-index: 30;
+  text-align: center;
+  padding: 52px 18px 18px;
+  transform: rotate(0.6deg);
+  border-radius: 18px;
+}
+.win-card .tape.t1 { top: -8px; left: 24px; transform: rotate(-6deg); }
+.win-card .tape.t2 { top: -8px; right: 24px; transform: rotate(5deg); }
+.win-stars {
+  position: absolute; top: -34px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 4px;
+}
+.wstar { font-size: 44px; color: var(--gold); text-shadow: 2px 3px 0 rgba(10,27,51,0.35); }
+.wstar.mid { font-size: 60px; margin-bottom: 8px; }
+.wstar.off { color: rgba(43,58,103,0.18); text-shadow: none; }
+.stamp {
+  position: absolute;
+  top: 56px; right: 10px;
+  font-family: 'Architects Daughter', cursive;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--red-stamp);
+  border: 3px solid var(--red-stamp);
+  border-radius: 8px;
+  padding: 2px 9px;
+  transform: rotate(12deg);
+  opacity: 0.85;
+  letter-spacing: 2px;
+}
+.win-card h2 { font-size: 24px; font-weight: 800; }
+.win-card .w-sub { font-family: 'Architects Daughter', cursive; font-size: 12.5px; color: #55618E; margin: 2px 0 12px; }
+.stat-rows { margin: 0 6px 12px; }
+.stat-row {
+  display: flex; justify-content: space-between;
+  border-bottom: 1.6px dashed rgba(43,58,103,0.3);
+  padding: 7px 4px;
+  font-size: 12.5px; font-weight: 700;
+}
+.stat-row .sr-v.good { color: #0E8A63; }
+.stat-row .sr-v.tip { color: var(--orange-deep); font-family: 'Architects Daughter', cursive; }
+.xp-bar {
+  background: rgba(43,58,103,0.12);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  height: 17px;
+  margin: 10px 6px 14px;
+  overflow: hidden;
+  position: relative;
+}
+.xp-fill { width: 68%; height: 100%; background: repeating-linear-gradient(-45deg, var(--gold) 0 8px, #FFDD70 8px 16px); }
+.xp-bar .xp-lbl {
+  position: absolute; inset: 0;
+  font-size: 9.5px; font-weight: 800;
+  color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 1px;
+}
+.win-buttons { display: flex; flex-direction: column; gap: 9px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">🧠 Neuro<span>Quest</span> — circuit blueprint</h1>
+<p class="page-sub">Direction C v2 · drafting-blue schematics: op-amp amplifiers, DIP-chip neurons, PCB traces &amp; solder pads</p>
+
+<div class="frames">
+
+  <!-- SCREEN 1 -->
+  <div class="frame-wrap">
+    <div class="frame-label">1 · Journey Map (copper traces &amp; pads)</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="hud">
+        <div class="avatar">🧠</div>
+        <div class="wordmark">Neuro<em>Quest</em></div>
+        <div class="hud-stat"><span class="star">★</span> 23</div>
+      </div>
+      <div style="padding-bottom:70px; position:relative; z-index:1">
+        <div class="chapter-ribbon">
+          <div>
+            <div class="cr-title">Chapter 2 · Weights</div>
+            <div class="cr-sub">every wire has a volume knob</div>
+          </div>
+          <div class="cr-progress">3/6</div>
+        </div>
+        <div class="path">
+          <!-- PCB trace with 45° bends + vias -->
+          <svg class="trace-svg" viewBox="0 0 286 470" preserveAspectRatio="none">
+            <path d="M85 36 L85 70 L110 95 L202 95 L202 112 L202 140 L110 140 L85 165 L85 182
+                     L85 200 L140 240 L163 258
+                     L202 296 L202 330 L110 330 L85 355 L85 382
+                     L143 430 L143 452"
+                  stroke="rgba(255,255,255,0.5)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+            <circle cx="202" cy="120" r="4" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+            <circle cx="85" cy="190" r="4" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+            <circle cx="202" cy="310" r="4" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+            <!-- decorative side stubs -->
+            <path d="M30 260 L60 260 M30 250 L30 270" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+            <path d="M256 200 L230 200 M256 190 L256 210" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+          </svg>
+          <div class="node-row l"><div class="node done gold"><span class="n-num">4</span><span class="n-stars">★★★</span></div></div>
+          <div class="node-row r"><div class="node done"><span class="n-num">5</span><span class="n-stars"><span class="star">★★</span><span style="opacity:.25">★</span></span></div></div>
+          <div class="node-row l"><div class="node done"><span class="n-num">6</span><span class="n-stars"><span class="star">★</span><span style="opacity:.25">★★</span></span></div></div>
+          <div class="node-row" style="transform:translateX(20px)"><div class="node current"><span class="n-num">7</span><span class="playlbl">play!</span></div></div>
+          <div class="node-row r" style="margin-top:24px"><div class="node locked"><span class="n-num">🔒</span></div></div>
+          <div class="node-row l"><div class="node locked"><span class="n-num">🔒</span></div></div>
+          <div class="node-row"><div class="boss-node"><span class="b-ico">🏆</span><span class="b-lbl">BOSS · IC-2</span></div></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab active"><span class="t-ico">🗺️</span>Journey</div>
+        <div class="tab"><span class="t-ico">🔬</span>Free Lab</div>
+        <div class="tab"><span class="t-ico">🏅</span>Awards</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2 -->
+  <div class="frame-wrap">
+    <div class="frame-label">2 · Chapter Intro (schematic sheet)</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="hud" style="filter:blur(1px)">
+        <div class="avatar">🧠</div>
+        <div class="wordmark">Neuro<em>Quest</em></div>
+        <div class="hud-stat"><span class="star">★</span> 23</div>
+      </div>
+      <div class="dim"></div>
+      <div class="intro-card sticker">
+        <div class="tape t1"></div><div class="tape t2"></div>
+        <div class="intro-chip">SCHEMATIC No. 2 — AMPLIFIER STAGE</div>
+        <div class="intro-hero">
+          <div class="opamp-shape">🎚️</div>
+          <span class="spark s1">✨</span><span class="spark s2">⚡</span>
+        </div>
+        <h2>Weights</h2>
+        <p class="lead">
+          Every wire runs through an <b>amplifier</b> with a
+          <b>weight</b> knob. Crank it up to make the signal shout,
+          drop it below zero to make it <b>argue against</b>.
+          Networks learn by turning these knobs.
+        </p>
+        <div class="mini-diagram">
+          <div class="md-wire"></div>
+          <span class="md-box">🔥 0.9</span>
+          <span class="mini-tri"><span>×2.0</span></span>
+          <span class="md-box">1.8 🔊</span>
+        </div>
+        <div class="titleblock">
+          <div>SHEET<b>2 / 9</b></div>
+          <div>REV<b>A</b></div>
+          <div>LEVELS<b>6</b></div>
+          <div>MAX ★<b>18</b></div>
+        </div>
+        <div class="btn btn-orange" style="width:100%">Start Chapter ▶</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3 -->
+  <div class="frame-wrap">
+    <div class="frame-label">3 · Puzzle — op-amp hand-tune</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 2-3 · Louder!</div>
+        <div class="play-stars"><span class="star">★</span><span class="star">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="goal-card sticker">
+        <span class="g-tag">🎯 GOAL —</span>
+        Make the lab at least <b>90% sure</b> that 🔥 Fire is <b>WARM</b>
+      </div>
+      <div class="stage">
+        <span class="corner" style="top:4px;left:8px">fig. 2.3</span>
+        <span class="corner" style="bottom:4px;right:8px">NQ-SCH-023</span>
+        <span class="refdes" style="top:58px;right:34px">LED2</span>
+        <span class="refdes" style="top:104px;left:38px">A1</span>
+        <span class="refdes" style="bottom:64px;left:52px">J1</span>
+        <div class="out-meters">
+          <div class="meter sticker">
+            <div class="m-head"><div class="m-name">❄️ COLD</div><div class="m-led"></div></div>
+            <div class="m-val">12%</div>
+            <div class="m-bar"><div class="m-fill" style="width:12%;background:#7FB3F5"></div></div>
+          </div>
+          <div class="meter sticker win">
+            <div class="m-head"><div class="m-name">🔥 WARM</div><div class="m-led"></div></div>
+            <div class="m-val" style="color:#0E8A63">88%</div>
+            <div class="m-bar"><div class="m-fill" style="width:88%;background:#17A97D"></div></div>
+          </div>
+        </div>
+        <svg class="wire-svg" viewBox="0 0 272 264">
+          <!-- PCB trace: input up to op-amp -->
+          <path d="M136 216 L136 182" stroke="#FFCD3C" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- op-amp output up, 45° bend to WARM meter -->
+          <path d="M136 96 L136 84 L158 68 L200 68 L200 60" stroke="#FFCD3C" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="136" cy="199" r="3.4" fill="#FFCD3C"/>
+          <circle cx="200" cy="64" r="3.4" fill="#FFCD3C"/>
+          <!-- faint unused trace to COLD -->
+          <path d="M136 84 L112 68 L72 68 L72 60" stroke="rgba(255,255,255,0.28)" stroke-width="2" fill="none" stroke-dasharray="4 5"/>
+        </svg>
+        <div class="opamp-wrap">
+          <div class="opamp">
+            <div class="c-kind">AMPLIFIER</div>
+            <div class="c-val">× 2.1</div>
+          </div>
+        </div>
+        <div class="input-chip sticker">
+          <span class="ic-emoji">🔥</span>
+          <span>
+            <span class="ic-name">TEMPERATURE</span><br>
+            <span class="ic-val">1.00</span>
+          </span>
+        </div>
+      </div>
+      <div class="controls sticker">
+        <div class="ctl-label"><span>WEIGHT (A1)</span><span>−3 … +3</span></div>
+        <div class="slider-track">
+          <div class="slider-thumb" style="left:78%"><div class="bubble">2.1</div></div>
+        </div>
+        <div class="star-goals">
+          <span><span class="star">★</span> solve</span>
+          <span><span class="star">★★</span> ≥ 90%</span>
+          <span><span class="star">★★★</span> ≥ 97%</span>
+        </div>
+      </div>
+      <div class="play-cta">
+        <div class="btn btn-mint">TEST ALL CARDS ▶</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4 -->
+  <div class="frame-wrap">
+    <div class="frame-label">4 · Puzzle — train the chip</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 4-2 · Rain Radar</div>
+        <div class="play-stars"><span class="star off">★</span><span class="star off">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="goal-card sticker">
+        <span class="g-tag">🎯 GOAL —</span>
+        <b>Train</b> the neuron to sort all 8 skies, under <b>40 epochs</b> for ★★★
+      </div>
+      <div class="dataset-strip">
+        <div class="d-chip ok"><div class="d-emoji">☀️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip ok"><div class="d-emoji">🌤️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip bad"><div class="d-emoji">💨</div><div class="d-tick">✗</div></div>
+        <div class="d-chip ok"><div class="d-emoji">🌵</div><div class="d-tick">✓</div></div>
+        <div class="d-chip ok"><div class="d-emoji">☁️</div><div class="d-tick">✓</div></div>
+        <div class="d-chip bad"><div class="d-emoji">🌧️</div><div class="d-tick">✗</div></div>
+        <div class="d-chip ok"><div class="d-emoji">⛈️</div><div class="d-tick">✓</div></div>
+      </div>
+      <div class="train-hud">
+        <div class="thud sticker"><div class="th-k">EPOCH</div><div class="th-v">17</div></div>
+        <div class="thud sticker"><div class="th-k">SORTED</div><div class="th-v good">6/8</div></div>
+        <div class="thud sticker">
+          <div class="th-k">LOSS</div>
+          <svg class="loss-spark" viewBox="0 0 60 22">
+            <path d="M2 4 C 12 6, 18 14, 28 16 S 50 19, 58 19" stroke="#E8543F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stage" style="height:206px">
+        <span class="corner" style="top:4px;left:8px">fig. 4.2</span>
+        <span class="refdes" style="top:78px;left:26px">U1</span>
+        <div class="out-meters">
+          <div class="meter sticker">
+            <div class="m-head"><div class="m-name">🌵 DRY</div><div class="m-led"></div></div>
+            <div class="m-bar" style="margin-top:8px"><div class="m-fill" style="width:34%;background:#7FB3F5"></div></div>
+          </div>
+          <div class="meter sticker win">
+            <div class="m-head"><div class="m-name">🌧️ RAIN</div><div class="m-led"></div></div>
+            <div class="m-bar" style="margin-top:8px"><div class="m-fill" style="width:66%;background:#17A97D"></div></div>
+          </div>
+        </div>
+        <svg class="wire-svg" viewBox="0 0 272 206">
+          <path d="M104 168 L104 150 L118 138 L118 128" stroke="#FFCD3C" stroke-width="2.8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M168 168 L168 150 L154 138 L154 128" stroke="#FFCD3C" stroke-width="2.8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M136 92 L136 80 L160 64 L200 64 L200 56" stroke="#FFCD3C" stroke-width="2.8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="104" cy="158" r="3.2" fill="#FFCD3C"/>
+          <circle cx="168" cy="158" r="3.2" fill="#FFCD3C"/>
+          <circle cx="200" cy="60" r="3.2" fill="#FFCD3C"/>
+        </svg>
+        <div class="neuron-node sticker">
+          <div class="notch-dot"></div>
+          <div class="c-kind">U1 · NEURON CHIP</div>
+          <div class="wbars">
+            <div class="wbar">
+              <div class="wb-track"><div class="wb-fill" style="height:70%;background:#17A97D"></div></div>
+              <div class="wb-lbl">w·cloud</div>
+            </div>
+            <div class="wbar">
+              <div class="wb-track"><div class="wb-fill" style="height:55%;background:#17A97D"></div></div>
+              <div class="wb-lbl">w·humid</div>
+            </div>
+            <div class="wbar">
+              <div class="wb-track"><div class="wb-fill" style="height:32%;background:#E8543F"></div></div>
+              <div class="wb-lbl">bias</div>
+            </div>
+          </div>
+        </div>
+        <div class="input-chip sticker" style="padding:6px 12px">
+          <span class="ic-emoji">☁️</span>
+          <span>
+            <span class="ic-name">J1 · CLOUDS ·85 · HUMID ·60</span><br>
+            <span class="ic-val">Overcast</span>
+          </span>
+        </div>
+      </div>
+      <div class="play-cta">
+        <div class="btn btn-paperghost" style="flex:0.6">STEP</div>
+        <div class="btn btn-orange">TRAIN ⚡</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5 -->
+  <div class="frame-wrap">
+    <div class="frame-label">5 · Level Complete (QC stamp)</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="play-top" style="filter:blur(1.5px)">
+        <div class="icon-btn">‹</div>
+        <div class="play-title">Level 4-2 · Rain Radar</div>
+        <div class="play-stars"><span class="star">★</span><span class="star">★</span><span class="star off">★</span></div>
+      </div>
+      <div class="dim"></div>
+      <div class="confetti" style="top:70px;left:36px;width:9px;height:13px;background:#FFCD3C;transform:rotate(24deg)"></div>
+      <div class="confetti" style="top:52px;left:120px;width:7px;height:7px;background:#7DE8C3;border-radius:50%"></div>
+      <div class="confetti" style="top:88px;right:48px;width:9px;height:12px;background:#FF7A3D;transform:rotate(-30deg)"></div>
+      <div class="confetti" style="top:40px;right:104px;width:6px;height:10px;background:#fff;transform:rotate(45deg)"></div>
+      <div class="confetti" style="top:390px;left:30px;width:8px;height:11px;background:#FFCD3C;transform:rotate(60deg)"></div>
+      <div class="confetti" style="top:420px;right:36px;width:7px;height:7px;background:#7DE8C3;border-radius:50%"></div>
+      <div class="win-card sticker">
+        <div class="tape t1"></div><div class="tape t2"></div>
+        <div class="win-stars">
+          <span class="wstar">★</span><span class="wstar mid">★</span><span class="wstar off">★</span>
+        </div>
+        <div class="stamp">QC PASSED</div>
+        <h2>Chip trained!</h2>
+        <div class="w-sub">U1 sorted every sky ☁️→🌧️ · board NQ-042</div>
+        <div class="stat-rows">
+          <div class="stat-row"><span>Cards sorted</span><span class="sr-v good">8 / 8</span></div>
+          <div class="stat-row"><span>Epochs used</span><span class="sr-v">52 <span style="color:#55618E">(par 40)</span></span></div>
+          <div class="stat-row"><span>★★★ tip</span><span class="sr-v tip">try a hotter learning rate</span></div>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-fill"></div>
+          <div class="xp-lbl">+40 XP · SYNAPSE LEVEL 5</div>
+        </div>
+        <div class="win-buttons">
+          <div class="btn btn-mint" style="font-size:15px">Continue ▶</div>
+          <div class="btn btn-paperghost onpaper">↻ Improve for ★★★</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

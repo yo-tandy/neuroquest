@@ -1,0 +1,1242 @@
+/* NeuroQuest — PCB Workbench design system */
+:root {
+  --board: #157347;
+  --board-dark: #0E5434;
+  --board-edge: #0A3D25;
+  --gold: #E9B94F;
+  --gold-hi: #FFD98A;
+  --gold-deep: #B98A2E;
+  --silk: #EFFFF4;
+  --silk-dim: rgba(239, 255, 244, 0.55);
+  --lcd: #C9DB74;
+  --lcd-ink: #2A3B14;
+  --led-red: #FF5349;
+  --led-grn: #4AE581;
+  --led-blu: #61B8FF;
+  --chip: #23283B;
+  --chip-lite: #3A415C;
+  --chip-deep: #10131F;
+  --paper: #FBF7EC;
+  --ink: #24303F;
+  --btn-red: #E8503F;
+  --btn-red-deep: #B03225;
+  --btn-grn: #23B36B;
+  --btn-grn-deep: #157A47;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'Rubik', sans-serif;
+  background: #071710;
+  color: var(--silk);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#app {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  max-height: 980px; /* keep phone proportions inside tall panes */
+  overflow: hidden;  /* nothing may scroll the frame itself */
+  background:
+    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.06) 0%, transparent 30%),
+    radial-gradient(rgba(10, 61, 37, 0.55) 1.6px, transparent 1.6px) 0 0 / 26px 26px,
+    var(--board);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6);
+}
+.mono { font-family: 'Share Tech Mono', monospace; }
+.fredoka { font-family: 'Fredoka', sans-serif; }
+.hidden { display: none !important; }
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+/* ---------- atoms ---------- */
+.btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 22px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+.btn:active { transform: translateY(3px); }
+.btn-red { background: var(--btn-red); box-shadow: 0 4.5px 0 var(--btn-red-deep), 0 0 18px rgba(232, 80, 63, 0.3); }
+.btn-red:active { box-shadow: 0 1.5px 0 var(--btn-red-deep); }
+.btn-grn { background: var(--btn-grn); box-shadow: 0 4.5px 0 var(--btn-grn-deep), 0 0 18px rgba(35, 179, 107, 0.3); }
+.btn-grn:active { box-shadow: 0 1.5px 0 var(--btn-grn-deep); }
+.btn-ghost { background: rgba(239, 255, 244, 0.08); color: var(--silk); border: 2px dashed rgba(239, 255, 244, 0.4); box-shadow: none; }
+.star { color: var(--gold); text-shadow: 0 0 8px rgba(233, 185, 79, 0.55); }
+.star.off { color: rgba(239, 255, 244, 0.22); text-shadow: none; }
+.lcd {
+  font-family: 'Share Tech Mono', monospace;
+  background: linear-gradient(180deg, #D3E387, var(--lcd));
+  color: var(--lcd-ink);
+  border-radius: 7px;
+  border: 2px solid var(--board-edge);
+  box-shadow: inset 0 2px 5px rgba(42, 59, 20, 0.35);
+  padding: 2px 8px;
+}
+
+/* ---------- HUD / map ---------- */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+  flex-shrink: 0;
+}
+.hud .avatar {
+  width: 42px; height: 42px;
+  background: var(--chip);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  border: 1.5px solid var(--chip-lite);
+  box-shadow: 0 3px 0 var(--chip-deep);
+  position: relative;
+}
+.hud .avatar::before, .hud .avatar::after {
+  content: '';
+  position: absolute; left: 6px; right: 6px;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 9px);
+}
+.hud .avatar::before { top: -7px; }
+.hud .avatar::after { bottom: -7px; }
+.hud .wordmark { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 19px; }
+.hud .wordmark em { font-style: normal; color: var(--gold); }
+.hud-stat {
+  background: var(--board-dark);
+  border: 1.5px solid var(--gold);
+  border-radius: 11px;
+  padding: 5px 11px;
+  font-weight: 700; font-size: 14px;
+}
+#map-scroll { flex: 1; overflow-y: auto; padding-bottom: 84px; }
+.sector-bar {
+  margin: 12px 16px;
+  border: 2px solid var(--silk-dim);
+  border-radius: 6px;
+  padding: 9px 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(10, 61, 37, 0.45);
+  cursor: pointer;
+}
+.sector-bar.locked { opacity: 0.45; }
+.sector-bar .sb-title { font-family: 'Fredoka', sans-serif; font-size: 14.5px; font-weight: 600; letter-spacing: 0.5px; }
+.sector-bar .sb-sub { font-size: 11px; color: var(--silk-dim); }
+.sector-bar .lcd { font-size: 13px; }
+.sector-map { position: relative; }
+.sector-map svg.traces { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pad {
+  position: absolute;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 2;
+}
+.pad .n-num { font-size: 20px; line-height: 1.05; }
+.pad .n-stars { font-size: 9.5px; letter-spacing: 1px; }
+.pad.done {
+  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 70%);
+  color: #5C4300;
+  border: 3px solid var(--gold-deep);
+  box-shadow: 0 3px 0 #8F6A20, inset 0 -3px 6px rgba(143, 106, 32, 0.5);
+}
+.pad.done .hole {
+  width: 10px; height: 10px;
+  background: var(--board-dark);
+  border-radius: 50%;
+  position: absolute; top: 7px; right: 9px;
+  box-shadow: inset 0 1px 2px #000;
+}
+.pad.current {
+  background: radial-gradient(circle at 35% 30%, #FF8A7A, var(--led-red) 70%);
+  color: #fff;
+  border: 3px solid var(--btn-red-deep);
+  box-shadow: 0 0 0 6px rgba(255, 83, 73, 0.25), 0 0 26px rgba(255, 83, 73, 0.65), 0 3px 0 #8F241A;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(255, 83, 73, 0.22), 0 0 18px rgba(255, 83, 73, 0.5), 0 3px 0 #8F241A; }
+  50% { box-shadow: 0 0 0 9px rgba(255, 83, 73, 0.3), 0 0 30px rgba(255, 83, 73, 0.75), 0 3px 0 #8F241A; }
+}
+.pad.current .playlbl {
+  position: absolute; bottom: -19px;
+  font-size: 9px; letter-spacing: 2.5px;
+  color: var(--led-red); font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 83, 73, 0.8);
+}
+.pad.locked {
+  background: rgba(10, 61, 37, 0.5);
+  color: rgba(239, 255, 244, 0.35);
+  border: 2.5px dashed rgba(239, 255, 244, 0.3);
+  cursor: default;
+}
+.pad.chipstyle { border-radius: 9px; }
+.tabbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--board-edge);
+  border-top: 2px solid var(--gold);
+  display: flex;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  z-index: 50;
+}
+.tab { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #7FAE92; cursor: pointer; }
+.tab .t-ico { font-size: 20px; display: block; }
+.tab.active { color: var(--gold); text-shadow: 0 0 10px rgba(233, 185, 79, 0.5); }
+
+/* ---------- level screen ---------- */
+.play-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 14px 6px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: 36px; height: 36px;
+  background: var(--board-dark);
+  border: 1.5px solid var(--silk-dim);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; color: var(--silk);
+  cursor: pointer;
+}
+.play-title { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15px; }
+.play-stars { font-size: 16px; letter-spacing: 2px; }
+.goal-card {
+  margin: 4px 14px 8px;
+  background: rgba(10, 61, 37, 0.55);
+  border: 1.6px solid var(--gold);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px; font-weight: 500;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+.goal-card b { color: var(--gold-hi); }
+.goal-card .g-tag { font-family: 'Share Tech Mono', monospace; color: var(--gold); font-size: 10px; letter-spacing: 2px; }
+.dataset-strip {
+  display: flex; gap: 8px;
+  margin: 14px 2px 2px;
+  /* % resolves against the strip's own container, so this never widens
+     the app column — it only adds internal scroll room so any card,
+     first or last, can be scrolled to the center. */
+  padding: 2px calc(50% - 24px) 6px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dataset-strip::-webkit-scrollbar { display: none; }
+.d-chip {
+  background: var(--chip);
+  border: 1.5px solid var(--chip-lite);
+  border-radius: 9px;
+  min-width: 48px;
+  padding: 5px 4px 4px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 2.5px 0 var(--chip-deep);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.d-chip .d-emoji { font-size: 18px; }
+.d-chip .d-name { font-size: 7.5px; color: var(--silk-dim); letter-spacing: 0.3px; white-space: nowrap; }
+.d-chip.active { border-color: var(--gold); box-shadow: 0 2.5px 0 var(--chip-deep), 0 0 10px rgba(233, 185, 79, 0.4); }
+.d-chip .d-tick {
+  position: absolute; top: -6px; right: -5px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  font-size: 9px; line-height: 15px;
+  text-align: center;
+  color: #06230F;
+  font-weight: 900;
+}
+.d-chip.ok .d-tick { background: var(--led-grn); box-shadow: 0 0 7px rgba(74, 229, 129, 0.7); }
+.d-chip.bad .d-tick { background: var(--led-red); color: #fff; box-shadow: 0 0 7px rgba(255, 83, 73, 0.7); }
+
+.stage-wrap { flex: 1; display: flex; flex-direction: column; margin: 0 14px; min-height: 0; }
+.stage {
+  position: relative;
+  background: var(--board-dark);
+  border-radius: 12px;
+  border: 2px solid var(--board-edge);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35);
+  flex: 1;
+  min-height: 230px;
+  overflow: hidden;
+}
+.silk-corner {
+  position: absolute;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  color: var(--silk-dim);
+  z-index: 4;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+.screwhole {
+  position: absolute;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #FFE9B8, var(--gold) 60%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 4;
+  pointer-events: none;
+}
+.screwhole::after { content: ''; position: absolute; inset: 4px; background: #071710; border-radius: 50%; }
+
+.wires-svg { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
+.wires-svg path.wire { stroke: var(--gold); stroke-width: 3.4; fill: none; stroke-linejoin: round; stroke-linecap: round; cursor: pointer; pointer-events: stroke; }
+.wires-svg path.wire.locked { cursor: default; opacity: 0.9; }
+.wires-svg path.wirehit { stroke: transparent; stroke-width: 16; fill: none; cursor: pointer; pointer-events: stroke; }
+.wires-svg circle.via { fill: var(--board-edge); stroke: var(--gold); stroke-width: 2.4; pointer-events: none; }
+
+/* meters */
+.out-row { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; gap: 8px; z-index: 3; }
+.meter {
+  flex: 1;
+  min-width: 0; /* let flex shrink meters below content width — 3-up rows must never overflow the board */
+  background: var(--chip);
+  border-radius: 9px;
+  padding: 6px 8px 7px;
+  box-shadow: 0 3px 0 var(--chip-deep);
+  border: 1px solid var(--chip-lite);
+}
+.meter .m-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+.meter .m-name { font-size: 9px; font-weight: 700; color: var(--silk-dim); letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 3+ outputs: compact type so every meter stays inside the viewport */
+.out-row.tight { gap: 6px; }
+.out-row.tight .meter { padding: 5px 6px 6px; }
+.out-row.tight .m-name { font-size: 10.5px !important; letter-spacing: 0.2px !important; }
+.out-row.tight .m-val { font-size: 16px !important; }
+.out-row.tight .ledbar { gap: 2px; }
+.meter .m-val { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--silk); }
+.ledbar { display: flex; gap: 2.5px; margin-bottom: 6px; }
+.ledbar i { flex: 1; height: 11px; border-radius: 2.5px; background: rgba(239, 255, 244, 0.1); }
+.meter .ledbar i.on { background: var(--led-blu); box-shadow: 0 0 6px rgba(97, 184, 255, 0.8); }
+.meter.winner { border-color: var(--led-grn); box-shadow: 0 3px 0 var(--chip-deep), 0 0 14px rgba(74, 229, 129, 0.35); }
+.meter.winner .ledbar i.on { background: var(--led-grn); box-shadow: 0 0 6px rgba(74, 229, 129, 0.8); }
+.meter .m-pad {
+  margin: 0 auto;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, var(--gold-hi), var(--gold) 65%);
+  border: 2px solid var(--gold-deep);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.meter .m-pad::after { content: ''; display: block; margin: 5px auto; width: 6px; height: 6px; background: var(--chip); border-radius: 50%; }
+
+/* potentiometer / amp */
+.pot-wrap { position: absolute; z-index: 3; text-align: center; transform: translate(-50%, -50%); }
+/* modules are movable — body drag repositions, wires follow */
+.pot-wrap, .nchip, .normchip, .sumnode, .refblock { cursor: grab; touch-action: none; }
+.pot-wrap.dragging, .nchip.dragging, .normchip.dragging, .sumnode.dragging, .refblock.dragging {
+  cursor: grabbing; z-index: 6;
+}
+.pot {
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #4A526E, var(--chip) 62%);
+  border: 3px solid var(--chip-deep);
+  box-shadow: 0 4px 0 var(--chip-deep), inset 0 2px 4px rgba(255, 255, 255, 0.15);
+  position: relative;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.pot-wrap.selected .pot { box-shadow: 0 4px 0 var(--chip-deep), 0 0 0 3px var(--gold), 0 0 16px rgba(233, 185, 79, 0.5); }
+.pot .tick {
+  position: absolute;
+  left: 50%; top: 4px;
+  width: 4px; height: 19px;
+  background: var(--gold);
+  border-radius: 3px;
+  transform-origin: 50% 27px;
+  transform: translateX(-50%) rotate(0deg);
+  box-shadow: 0 0 8px rgba(233, 185, 79, 0.7);
+  transition: transform 0.12s;
+}
+.pot-lbl { margin-top: 4px; }
+.pot-lbl .lcd { font-size: 11.5px; padding: 1px 6px; }
+.pot-name {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; color: var(--silk-dim); letter-spacing: 1px;
+  white-space: nowrap;
+  background: rgba(10, 61, 37, 0.92);
+  padding: 1px 6px;
+  border-radius: 6px;
+  z-index: 2;
+}
+.pot-pin {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, var(--gold-hi), var(--gold) 65%);
+  border: 2px solid var(--gold-deep);
+  position: absolute; left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  touch-action: none;
+}
+.pot-pin::after {
+  content: '';
+  display: block;
+  margin: 4px auto;
+  width: 5px; height: 5px;
+  background: var(--chip);
+  border-radius: 50%;
+}
+.pot-pin.pin-in { bottom: -21px; }
+.pot-pin.pin-out { top: -37px; }
+.pot-wrap .pin-stub {
+  position: absolute; left: 50%;
+  transform: translateX(-50%);
+  width: 3.5px;
+  background: var(--gold);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.pot-wrap .stub-out { top: -22px; height: 22px; }
+.pot-wrap .stub-in { bottom: -6px; height: 8px; }
+.static-pads .pot-pin { cursor: default; }
+
+/* neuron chip pads */
+.nc-pad {
+  position: absolute;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, var(--gold-hi), var(--gold) 65%);
+  border: 2px solid var(--gold-deep);
+  touch-action: none;
+}
+.nc-pad::after {
+  content: '';
+  display: block;
+  margin: 3.5px auto;
+  width: 4px; height: 4px;
+  background: var(--chip);
+  border-radius: 50%;
+}
+.nc-pad.out { top: -24px; left: 50%; transform: translateX(-50%); }
+.nc-pad.in { bottom: -22px; }
+
+/* gate variant of the pot */
+.pot-wrap.gate .pot {
+  border-color: var(--gold-deep);
+  background: radial-gradient(circle at 38% 32%, #6B5B30, #2E2A1A 62%);
+}
+.pot-wrap.gate .pot .tick { background: #FFC848; }
+
+/* neuron DIP chip */
+.nchip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 118px;
+  background: linear-gradient(180deg, var(--chip-lite), var(--chip) 40%);
+  border-radius: 8px;
+  z-index: 3;
+  padding: 7px 10px 8px;
+  text-align: center;
+  box-shadow: 0 4px 0 var(--chip-deep);
+}
+.nchip::before, .nchip::after {
+  content: '';
+  position: absolute;
+  top: 12px; bottom: 12px;
+  width: 8px;
+  background: repeating-linear-gradient(180deg, var(--gold) 0 6px, transparent 6px 15px);
+}
+.nchip::before { left: -9px; }
+.nchip::after { right: -9px; }
+.nchip .nc-dot { position: absolute; top: 6px; left: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--chip-deep); }
+.nchip .nc-name { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--gold); letter-spacing: 1.5px; }
+.nbars { display: flex; gap: 7px; justify-content: center; margin-top: 5px; }
+.nbar { width: 22px; }
+.nbar .nb-track {
+  height: 34px;
+  background: var(--chip-deep);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.nbar .nb-fill {
+  position: absolute; bottom: 0; left: 2px; right: 2px;
+  border-radius: 3px;
+  background: var(--led-grn);
+  transition: height 0.12s, background 0.12s;
+  box-shadow: 0 0 6px rgba(74, 229, 129, 0.6);
+}
+.nbar .nb-lbl { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--silk-dim); margin-top: 2px; }
+
+/* frozen reference block */
+.refblock {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--chip);
+  border: 1px dashed var(--chip-lite);
+  border-radius: 8px;
+  padding: 5px 9px;
+  text-align: center;
+  z-index: 3;
+  box-shadow: 0 3px 0 var(--chip-deep);
+}
+.refblock .rb-name { font-family: 'Share Tech Mono', monospace; font-size: 8.5px; color: var(--silk-dim); letter-spacing: 1.5px; }
+.refblock .lcd { font-size: 11px; padding: 0 6px; margin-top: 2px; display: inline-block; }
+
+/* training console */
+.train-hud { display: flex; gap: 8px; margin-bottom: 8px; }
+.thud {
+  flex: 1;
+  background: var(--chip);
+  border: 1px solid var(--chip-lite);
+  border-radius: 10px;
+  text-align: center;
+  padding: 4px 4px 6px;
+  box-shadow: 0 2.5px 0 var(--chip-deep);
+}
+.thud .th-k { font-size: 8.5px; font-weight: 700; letter-spacing: 2px; color: var(--silk-dim); }
+.thud .lcd { font-size: 13px; margin-top: 2px; display: inline-block; padding: 0 8px; }
+.loss-spark { height: 22px; margin-top: 2px; width: 90%; }
+.train-btns { display: flex; gap: 8px; margin-top: 8px; }
+.train-btns .btn { flex: 1; padding: 9px 6px; font-size: 13px; }
+.train-btns .btn.running { background: var(--gold); color: #3A2B00; box-shadow: 0 4.5px 0 var(--gold-deep); }
+
+/* input pins */
+.in-row { position: absolute; bottom: 10px; left: 12px; right: 12px; display: flex; gap: 8px; justify-content: center; z-index: 3; }
+.pinblock {
+  background: var(--chip);
+  border: 1px solid var(--chip-lite);
+  border-radius: 9px;
+  padding: 5px 10px 7px;
+  text-align: center;
+  box-shadow: 0 3px 0 var(--chip-deep);
+  position: relative;
+  min-width: 74px;
+}
+.pinblock .p-pad {
+  margin: 0 auto 4px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, var(--gold-hi), var(--gold) 65%);
+  border: 2px solid var(--gold-deep);
+  cursor: pointer;
+  touch-action: none;
+}
+.pinblock .p-pad::after { content: ''; display: block; margin: 5px auto; width: 6px; height: 6px; background: var(--chip); border-radius: 50%; }
+.pinblock .p-name { font-size: 8px; font-weight: 700; color: var(--silk-dim); letter-spacing: 1px; white-space: nowrap; }
+.pinblock .lcd { font-size: 11px; padding: 0 6px; margin-top: 3px; display: inline-block; }
+.p-pad.armed, .m-pad.armed, .pot-pin.armed, .nc-pad.armed {
+  box-shadow: 0 0 0 3px var(--led-grn), 0 0 14px rgba(74, 229, 129, 0.8) !important;
+}
+.droppable {
+  animation: droppulse 0.9s ease-in-out infinite;
+}
+@keyframes droppulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--led-grn), 0 0 8px rgba(74, 229, 129, 0.5); }
+  50% { box-shadow: 0 0 0 5px var(--led-grn), 0 0 18px rgba(74, 229, 129, 0.9); }
+}
+.wires-svg path.ghost {
+  stroke: var(--led-grn);
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(74, 229, 129, 0.7));
+}
+
+/* card → input connector traces */
+#lv-cardlinks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+}
+#lv-cardlinks path {
+  animation: dashflow 0.9s linear infinite;
+}
+@keyframes dashflow {
+  to { stroke-dashoffset: -22; }
+}
+.stage-wrap { position: relative; }
+
+/* controls */
+.controls {
+  margin: 8px 14px 0;
+  background: rgba(10, 61, 37, 0.55);
+  border: 1.5px solid rgba(239, 255, 244, 0.35);
+  border-radius: 12px;
+  padding: 9px 14px 11px;
+  flex-shrink: 0;
+}
+.controls .ctl-label {
+  display: flex; justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: var(--silk-dim);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+input[type=range].knob-slider {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--led-blu) 0%, rgba(0, 0, 0, 0.35) 50%, var(--led-red) 100%);
+  border: 2px solid var(--board-edge);
+  outline: none;
+}
+input[type=range].knob-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #4A526E, var(--chip) 65%);
+  border: 2.5px solid var(--gold);
+  box-shadow: 0 0 12px rgba(233, 185, 79, 0.5);
+  cursor: pointer;
+}
+.star-goals {
+  display: flex; justify-content: center; gap: 13px;
+  margin-top: 7px;
+  font-size: 10.5px; font-weight: 600; color: var(--silk-dim);
+}
+.play-cta { display: flex; gap: 10px; margin: 8px 14px calc(12px + env(safe-area-inset-bottom)); flex-shrink: 0; }
+.play-cta .btn { flex: 1; font-size: 15px; padding: 12px 10px; }
+
+/* ---------- modals ---------- */
+.modal-back {
+  position: absolute; inset: 0;
+  background: rgba(4, 15, 9, 0.75);
+  z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+}
+.datasheet {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-width: 360px;
+  max-height: 88%;
+  overflow-y: auto;
+  text-align: center;
+}
+.ds-head {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  border-radius: 12px 12px 0 0;
+}
+.ds-head b { color: var(--gold); }
+.ds-body { padding: 14px 18px 18px; }
+.ds-sym {
+  margin: 4px auto 10px;
+  width: 100%; height: 104px;
+  border: 1.6px solid rgba(36, 48, 63, 0.35);
+  border-radius: 6px;
+  background:
+    linear-gradient(rgba(36, 48, 63, 0.06) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(90deg, rgba(36, 48, 63, 0.06) 1px, transparent 1px) 0 0 / 14px 14px;
+}
+.datasheet h2 { font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 700; margin: 4px 0 8px; }
+.datasheet p.lead { font-size: 13px; font-weight: 500; color: #5A6878; line-height: 1.55; margin-bottom: 12px; text-align: left; }
+.datasheet p.lead b { color: var(--ink); }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 14px; font-family: 'Share Tech Mono', monospace; }
+.spec-table td { border: 1.4px solid rgba(36, 48, 63, 0.3); padding: 5px 8px; }
+.spec-table td:first-child { text-align: left; color: #5A6878; }
+.spec-table td:last-child { text-align: right; font-weight: 700; }
+
+/* win modal */
+.win-card {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  padding: 46px 18px 18px;
+  position: relative;
+}
+.win-stars {
+  position: absolute; top: -32px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 4px;
+}
+.wstar {
+  font-size: 42px;
+  color: var(--gold);
+  text-shadow: 0 3px 0 var(--gold-deep);
+  filter: drop-shadow(0 5px 10px rgba(233, 185, 79, 0.5));
+  opacity: 0;
+  transform: scale(0.2);
+}
+.wstar.mid { font-size: 58px; margin-bottom: 8px; }
+.wstar.show { animation: starpop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) forwards; }
+.wstar.off { color: #E2DACA; text-shadow: 0 3px 0 #CFC5B0; filter: none; opacity: 1; transform: none; }
+@keyframes starpop { to { opacity: 1; transform: scale(1); } }
+.stamp {
+  position: absolute;
+  top: 46px; right: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11.5px;
+  color: var(--btn-grn);
+  border: 2.5px solid var(--btn-grn);
+  border-radius: 6px;
+  padding: 3px 8px;
+  transform: rotate(11deg);
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+.win-card h2 { font-family: 'Fredoka', sans-serif; font-size: 24px; font-weight: 700; }
+.win-card .w-sub { font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: #5A6878; margin: 3px 0 12px; letter-spacing: 0.5px; }
+.stat-rows { margin: 0 4px 12px; border: 1.5px solid rgba(36, 48, 63, 0.3); border-radius: 8px; overflow: hidden; }
+.stat-row {
+  display: flex; justify-content: space-between;
+  padding: 7px 12px;
+  font-size: 12.5px; font-weight: 500;
+  border-bottom: 1.5px solid rgba(36, 48, 63, 0.18);
+  background: #fff;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row .sr-v { font-family: 'Share Tech Mono', monospace; }
+.stat-row .sr-v.good { color: var(--btn-grn); }
+.stat-row .sr-v.tip { color: var(--btn-red); }
+.win-buttons { display: flex; flex-direction: column; gap: 9px; }
+
+/* toast */
+#toast {
+  position: absolute;
+  left: 50%; bottom: 110px;
+  transform: translateX(-50%);
+  background: var(--chip);
+  color: var(--silk);
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 120;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  max-width: 85%;
+  text-align: center;
+}
+#toast.show { opacity: 1; }
+
+/* confetti */
+.confetti {
+  position: absolute;
+  width: 8px; height: 12px;
+  z-index: 95;
+  animation: fall 1.6s ease-in forwards;
+}
+@keyframes fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(300px) rotate(340deg); opacity: 0; }
+}
+.shake { animation: shake 0.4s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-7px); }
+  75% { transform: translateX(7px); }
+}
+
+/* ================================================================
+   READABILITY & INTERACTION PASS
+   Bigger type everywhere, big rotary knobs, expected-output badge,
+   drag-scrollable card rack.
+   ================================================================ */
+
+/* --- type scale up --- */
+.play-title { font-size: 18px; }
+.play-stars { font-size: 18px; }
+.goal-card { font-size: 15.5px; line-height: 1.5; padding: 12px 15px; }
+.goal-card .g-tag { font-size: 12px; }
+.m-name { font-size: 14px !important; letter-spacing: 0.5px !important; }
+.m-val { font-size: 24px !important; }
+.p-name { font-size: 12.5px !important; letter-spacing: 0.5px !important; }
+.lcd { font-size: 14px !important; padding: 1px 8px !important; }
+.pot-name { font-size: 12px !important; letter-spacing: 1px !important; }
+.d-chip .d-name { font-size: 11px !important; }
+.d-chip { min-width: 62px !important; padding: 7px 6px 6px !important; }
+.d-chip .d-emoji { font-size: 24px !important; }
+.star-goals { font-size: 13px !important; gap: 16px !important; }
+.ctl-label { font-size: 13px !important; }
+.btn { font-size: 17px !important; }
+.train-btns .btn { font-size: 15px !important; }
+.thud .th-k { font-size: 11px !important; }
+.thud .lcd { font-size: 15px !important; }
+.nc-name { font-size: 11px !important; }
+.nbar .nb-lbl { font-size: 10px !important; }
+.rb-name { font-size: 10.5px !important; }
+.silk-corner { font-size: 10px !important; }
+.toast-bump { font-size: 14px; }
+#toast { font-size: 14.5px !important; }
+.sb-title { font-size: 16px !important; }
+.sb-sub { font-size: 13px !important; }
+.tab { font-size: 12.5px !important; }
+.ds-body .lead { font-size: 15.5px !important; line-height: 1.6 !important; }
+.spec-table td { font-size: 13px !important; }
+.stat-row { font-size: 14.5px !important; }
+.w-sub { font-size: 13.5px !important; }
+.hud .wordmark { font-size: 20px !important; }
+.hud-stat { font-size: 16px !important; }
+
+/* --- big rotary knobs (drag to turn) --- */
+.pot {
+  width: 80px !important;
+  height: 80px !important;
+  cursor: grab;
+  touch-action: none;
+}
+.pot:active { cursor: grabbing; }
+.pot .tick {
+  height: 30px !important;
+  width: 5px !important;
+  border-radius: 3px;
+}
+.pot-wrap.turning .pot {
+  box-shadow: 0 0 0 4px rgba(233, 185, 79, 0.45), 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+.pot-wrap .pin-out { top: -39px; }
+.pot-wrap .stub-out { top: -24px; height: 24px; }
+/* min/max silk marks around the dial */
+.pot::before {
+  content: '−3';
+  position: absolute;
+  left: -20px; bottom: -4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+}
+.pot::after {
+  content: '+3';
+  position: absolute;
+  right: -22px; bottom: -4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+}
+
+/* --- expected-output badge on meters --- */
+.meter { position: relative; overflow: visible; }
+.m-expect {
+  position: absolute;
+  top: -13px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #3A2B00;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+  z-index: 4;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.m-expect.hidden { display: none; }
+.meter.expected {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(233, 185, 79, 0.35);
+}
+.meter.expected.winner {
+  border-color: var(--led-grn);
+  box-shadow: 0 0 14px rgba(74, 229, 129, 0.45);
+}
+
+/* --- card rack: grabbable --- */
+.dataset-strip {
+  cursor: grab;
+  touch-action: pan-x;
+}
+.dataset-strip:active { cursor: grabbing; }
+
+/* ================================================================
+   VALUE-CHAIN PASS — the whole computation is legible:
+   reading → normalized signal → component outputs → meter inputs
+   ================================================================ */
+.p-sig {
+  margin-top: 3px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+}
+.p-sig b { color: var(--led-blu); font-weight: 400; }
+
+.pot-out {
+  position: absolute;
+  top: -32px;
+  left: calc(50% + 14px);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pot-out b { color: var(--led-blu); font-weight: 400; }
+
+.nc-out {
+  position: absolute;
+  top: -20px;
+  left: calc(50% + 14px);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.nc-out b { color: var(--led-blu); font-weight: 400; }
+
+.m-raw {
+  margin-top: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+}
+.m-raw b { color: var(--led-blu); font-weight: 400; }
+
+
+/* output readouts live inside their component column — collision-free */
+.pot-out {
+  position: static;
+  margin-top: 3px;
+  text-align: center;
+  left: auto; top: auto;
+}
+.nc-out {
+  position: static;
+  margin-top: 3px;
+  text-align: center;
+  left: auto; top: auto;
+}
+
+/* Σ summing junction */
+.sumnode {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 3;
+}
+.sumnode .sum-disc {
+  width: 54px; height: 54px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, var(--gold-hi), var(--gold) 68%);
+  border: 3px solid var(--gold-deep);
+  box-shadow: 0 3px 0 #8F6A20, inset 0 -3px 6px rgba(143, 106, 32, 0.4);
+  color: #5C4300;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 27px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.sumnode .sum-name {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--silk-dim);
+  margin-top: 3px;
+  letter-spacing: 1px;
+}
+.sumnode .pin-out { top: -27px; }
+.sumnode .pin-in { bottom: 8px; }
+.sumnode .pot-out { top: -22px; }
+
+/* ================================================================
+   BRIEFING OVERLAY, TOP OUT-VALUES, PER-CARD TESTING
+   ================================================================ */
+
+/* collapsed briefing bar */
+.goal-card {
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 10px 14px !important;
+  font-size: 14.5px !important;
+}
+.goal-card .g-open {
+  float: right;
+  color: var(--silk-dim);
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* mission briefing sheet */
+.goal-sheet {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 14px;
+  width: min(360px, 88vw);
+  padding: 20px 20px 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--gold-deep);
+  text-align: center;
+}
+.goal-sheet .gs-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #8a7430;
+}
+.goal-sheet h2 {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 24px;
+  margin: 6px 0 8px;
+}
+.goal-sheet p {
+  font-size: 15.5px;
+  line-height: 1.55;
+  text-align: left;
+  margin-bottom: 12px;
+}
+.goal-sheet p b { color: #8a5b00; }
+.goal-sheet .gs-stars {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(233, 185, 79, 0.14);
+  border: 1.5px dashed var(--gold-deep);
+  border-radius: 10px;
+  padding: 8px 6px;
+  margin-bottom: 14px;
+}
+.goal-sheet .btn { width: 100%; }
+
+/* out-value pill sits where the component name used to be */
+.pot-out.pot-top {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(10, 61, 37, 0.92);
+  padding: 1px 8px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-size: 12px;
+  z-index: 4;
+}
+.sumnode .pot-out.pot-top { top: -10px; }
+
+/* expected category on the active card */
+.d-chip .d-expect {
+  display: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.d-chip.active .d-expect { display: block; }
+.d-chip.active { min-width: 78px !important; }
+
+/* untested chips are neutral */
+.d-chip .d-tick:empty { display: none; }
+
+/* traveling signal pulse */
+.sig-dot {
+  fill: var(--led-grn);
+  filter: drop-shadow(0 0 6px rgba(74, 229, 129, 0.9));
+}
+
+/* readouts flash as fresh values land */
+@keyframes valueflash {
+  0% { box-shadow: 0 0 0 0 rgba(74, 229, 129, 0); }
+  35% { box-shadow: 0 0 0 3px rgba(74, 229, 129, 0.85), 0 0 14px rgba(74, 229, 129, 0.7); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 229, 129, 0); }
+}
+.flash { animation: valueflash 0.55s ease-out; }
+
+/* Σ node vertical stack: value pill above the pin, pin above the disc */
+.sumnode .pot-out.pot-top { top: -46px; }
+.sumnode .pin-out { top: -26px; }
+
+/* readable secondary buttons on the paper win card */
+.win-card .btn-ghost, .goal-sheet .btn-ghost {
+  color: var(--ink);
+  border: 2px dashed var(--gold-deep);
+  background: rgba(233, 185, 79, 0.14);
+}
+.btn:focus, .btn:focus-visible { outline: none; }
+.btn:focus-visible { box-shadow: 0 0 0 3px rgba(233, 185, 79, 0.6); }
+.w-note {
+  font-size: 12.5px;
+  color: #5A6878;
+  line-height: 1.45;
+  text-align: left;
+  background: rgba(233, 185, 79, 0.12);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin: 2px 6px 8px;
+}
+.w-note b { color: #8a5b00; }
+
+/* ================================================================
+   Σ PAD FIX · NORMALIZER CHIP · SIG-AS-OUT
+   ================================================================ */
+
+/* Σ node: pads + stubs exactly like the amplifiers */
+.sumnode .pin-out { top: -37px; }
+.sumnode .pin-in { bottom: -21px; }
+.sumnode .pot-out.pot-top { top: -57px; }
+.sumnode .pin-stub { position: absolute; left: 50%; transform: translateX(-50%);
+  width: 3.5px; background: var(--gold); opacity: 0.9; pointer-events: none; }
+.sumnode .stub-out { top: -22px; height: 22px; }
+.sumnode .stub-in { bottom: -6px; height: 8px; }
+
+/* normalizer chip */
+.normchip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--chip);
+  border: 1.5px solid var(--chip-lite);
+  border-radius: 10px;
+  box-shadow: 0 4px 0 var(--chip-deep);
+  padding: 7px 10px 8px;
+  text-align: center;
+  z-index: 3;
+  width: 148px;
+}
+.normchip .nc-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+.normchip .ndials { display: flex; gap: 10px; justify-content: center; }
+.ndial .nd-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--silk-dim);
+  margin-bottom: 2px;
+}
+.pot.mini {
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 auto;
+}
+.pot.mini .tick { height: 16px !important; width: 3.5px !important; }
+.pot.mini::before, .pot.mini::after { content: none; }
+.ndial .nd-val {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 11px !important;
+  padding: 0 6px !important;
+}
+.normchip .pin-out { top: -37px; }
+.normchip .pin-in { bottom: -21px; }
+.normchip .pot-out.pot-top { top: -57px; }
+.normchip .pin-stub { position: absolute; left: 50%; transform: translateX(-50%);
+  width: 3.5px; background: var(--gold); opacity: 0.9; pointer-events: none; }
+.normchip .stub-out { top: -22px; height: 22px; }
+.normchip .stub-in { bottom: -6px; height: 8px; }
+
+/* the sig readout looks like every module's out pill */
+.pinblock { position: relative; }
+.pinblock .p-sig {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 61, 37, 0.92);
+  padding: 1px 8px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--silk-dim);
+  z-index: 4;
+}
+.pinblock .p-sig b { color: var(--led-blu); font-weight: 400; }
+
+/* mini dial tick: pivot exactly on the 44px face center (3px top + 19px = 22px) */
+.pot.mini .tick {
+  top: 3px;
+  height: 15px !important;
+  width: 3.5px !important;
+  transform-origin: 50% 19px;
+}
+
+/* free lab */
+.tray-btns { display: flex; gap: 8px; }
+.tray-btns .btn { flex: 1; padding: 9px 4px; font-size: 13px !important; }
+.pinblock .labdial { margin: 4px auto 2px; cursor: grab; touch-action: none; }
+.comp-del {
+  position: absolute;
+  top: -10px; right: -10px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--led-red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* awards */
+#awards-list { flex: 1; overflow-y: auto; padding: 4px 16px 90px; }
+.award {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 61, 37, 0.55);
+  border: 1.6px solid var(--gold);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.award.locked { border-color: rgba(239, 255, 244, 0.25); opacity: 0.75; }
+.award .aw-ico {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 70%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 0 var(--gold-deep);
+}
+.award.locked .aw-ico { background: var(--board-dark); box-shadow: none; border: 2px dashed rgba(239,255,244,0.3); font-size: 18px; }
+.award .aw-info { flex: 1; }
+.award .aw-name { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 16px; }
+.award .aw-desc { font-size: 12.5px; color: var(--silk-dim); margin: 1px 0 5px; }
+.award .aw-bar { height: 7px; background: rgba(0,0,0,0.35); border-radius: 5px; overflow: hidden; }
+.award .aw-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); border-radius: 5px; }
+.award .aw-prog { font-size: 12px !important; flex-shrink: 0; }

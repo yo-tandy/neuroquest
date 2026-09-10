@@ -1,0 +1,6 @@
+.DS_Store
+.claude/settings.local.json
+neuroquest/app/build/
+neuroquest/app/.dart_tool/
+neuroquest/app/.flutter-plugins-dependencies
+neuroquest/app/*.iml

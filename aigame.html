@@ -1,0 +1,3425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Blueprint: AI Lab</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --grid-color: #34495e;
+            --component-bg: #ecf0f1;
+            --component-border: #2c3e50;
+            --accent-color: #e74c3c;
+            --socket-out: #f39c12;
+            --socket-in: #27ae60;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden;
+            color: white;
+            user-select: none;
+        }
+
+        /* --- Header --- */
+        header {
+            background: #34495e;
+            padding: 10px 20px;
+            border-bottom: 2px solid white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        h1, h2 { margin: 0; }
+
+        .hdr-btn {
+            padding: 6px 12px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            border-radius: 3px;
+        }
+        .hdr-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* --- Layout --- */
+        #game-container {
+            display: flex;
+            flex: 1;
+            position: relative;
+        }
+
+        /* --- Toolbox --- */
+        #toolbox {
+            width: 220px;
+            background: rgba(0,0,0,0.6);
+            border-right: 2px solid white;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 50;
+            overflow-y: auto;
+        }
+
+        .tool-item {
+            background: var(--component-bg);
+            color: black;
+            padding: 10px;
+            border: 2px solid black;
+            cursor: grab;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
+        .tool-item:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px rgba(0,0,0,0.5); }
+
+        .build-btn {
+            background: #f1c40f;
+            cursor: pointer;
+        }
+
+        /* --- Canvas --- */
+        #canvas-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab; /* empty background is draggable (pan) */
+        }
+
+        /* The scalable "world": all nodes and wires live here; overlay UI
+           (stats, zoom, learning rate) stays outside at fixed size */
+        #canvas-world {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
+        }
+
+        #circuit-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Tutorial panel (left column, under the stats panel) */
+        #tutorial-panel {
+            position: absolute;
+            top: 195px;
+            left: 20px;
+            width: 250px;
+            max-height: calc(100% - 280px);
+            overflow-y: auto;
+            background: rgba(0,0,0,0.85);
+            border: 2px solid #f1c40f;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 65;
+            font-size: 11px;
+            line-height: 1.5;
+            display: none;
+        }
+        #tutorial-panel h4 {
+            margin: 0 0 6px;
+            color: #f1c40f;
+            font-size: 12px;
+        }
+        #tutorial-panel .tut-objective {
+            background: rgba(255,255,255,0.1);
+            border-left: 3px solid #f1c40f;
+            padding: 5px 8px;
+            margin-top: 8px;
+            border-radius: 0 4px 4px 0;
+        }
+        #tutorial-panel .tut-buttons {
+            display: flex;
+            gap: 6px;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        #tutorial-panel .tut-buttons button {
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            color: white;
+        }
+        #tutorial-panel .tut-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        #zoom-control {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid white;
+            border-radius: 8px;
+            padding: 5px 8px;
+            z-index: 60;
+        }
+        #zoom-control button {
+            width: 26px;
+            height: 26px;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: inherit;
+            background: var(--component-bg);
+            border: 1px solid black;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #zoom-control button:hover { background: #f1c40f; }
+        #zoom-display {
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 38px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        /* --- Stats Panel (Training Monitor) --- */
+        #stats-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid white;
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 55;
+            font-size: 11px;
+            width: 250px;
+        }
+        #stats-panel .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        #stats-panel .stat {
+            text-align: center;
+            flex: 1;
+        }
+        #stats-panel .stat b {
+            display: block;
+            font-size: 14px;
+            color: #f1c40f;
+        }
+        #loss-chart {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid #7f8c8d;
+            border-radius: 3px;
+            display: block;
+        }
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 4px;
+            font-size: 9px;
+        }
+        .chart-legend .loss-key { color: #e74c3c; }
+        .chart-legend .acc-key { color: #2ecc71; }
+
+        /* --- Cards Container --- */
+        #cards-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: none; /* Hidden by default */
+            max-width: 620px;
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 60;
+            padding: 15px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 8px;
+            border: 2px solid white;
+        }
+
+        .cards-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            gap: 12px;
+        }
+        .cards-close {
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            color: #e74c3c;
+            padding: 0 6px;
+        }
+        .cards-close:hover { transform: scale(1.2); }
+
+        .cards-section-title {
+            color: #f1c40f;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 10px 0 6px;
+        }
+
+        #cards-grid, #cards-grid-test {
+            display: grid;
+            grid-template-columns: repeat(6, 90px);
+            gap: 10px;
+            justify-content: center;
+        }
+
+        #cards-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            z-index: 60;
+            transition: transform 0.2s;
+        }
+
+        #cards-btn:hover {
+            transform: scale(1.1);
+            background: rgba(0,0,0,0.9);
+        }
+
+        .data-card {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            background: white;
+            color: black;
+            border: 3px solid black;
+            border-radius: 5px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.3s;
+        }
+        .data-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.5);
+        }
+        .data-card.correct { border-color: #27ae60; }
+        .data-card.wrong { border-color: #e74c3c; }
+        .card-status {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-weight: 900;
+            font-size: 12px;
+        }
+
+        /* Custom cards & the "make your own" entry */
+        .data-card.custom { border-style: dashed; }
+        .data-card.add-card {
+            border-style: dashed;
+            background: rgba(255,255,255,0.8);
+            justify-content: center;
+            gap: 4px;
+        }
+        .card-del {
+            position: absolute;
+            top: 0;
+            left: 5px;
+            color: #c0392b;
+            font-weight: 900;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .card-del:hover { transform: scale(1.3); }
+
+        /* Card builder modal */
+        #card-builder {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+        .builder-box {
+            background: var(--component-bg);
+            color: black;
+            border: 2px solid black;
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 700px;
+            max-height: 82vh;
+            overflow-y: auto;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.4);
+        }
+        .builder-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+        .builder-row label { width: 82px; font-size: 11px; font-weight: bold; flex-shrink: 0; }
+        .builder-row input[type=range] { flex: 1; min-width: 90px; }
+        .builder-row .feat-val { width: 46px; font-size: 11px; text-align: right; }
+        .builder-row input[type=text], .builder-row select {
+            font-family: inherit;
+            font-size: 12px;
+            padding: 3px;
+            border: 1px solid #7f8c8d;
+            border-radius: 3px;
+        }
+        .builder-group { border: 1px solid #b2bec3; border-radius: 4px; padding: 6px; flex: 1; }
+        .builder-group .builder-row label { width: 46px; }
+        .builder-group-title { font-weight: bold; font-size: 11px; text-align: center; margin-bottom: 4px; }
+
+        /* Network library modal */
+        #net-library {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+        .net-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #7f8c8d;
+            border-radius: 5px;
+            padding: 8px 10px;
+            margin: 6px 0;
+            background: white;
+            font-size: 11px;
+        }
+        .net-item .net-info { flex: 1; line-height: 1.5; }
+        .net-fp {
+            image-rendering: pixelated;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            margin-top: 3px;
+            display: block;
+        }
+
+        /* Signal Value Display */
+        .signal-value {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #3498db;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #3498db;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 101;
+        }
+
+        /* Output Module Value Displays */
+        .output-value-display {
+            font-size: 9px;
+            text-align: center;
+            margin-bottom: 3px;
+        }
+
+        .output-softmax {
+            font-weight: bold;
+            color: #27ae60;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #27ae60;
+            display: inline-block;
+            min-width: 40px;
+        }
+
+        .output-raw {
+            font-size: 8px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        /* Vertical Sliders */
+        input[type="range"].vertical-slider {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            appearance: slider-vertical;
+            -webkit-appearance: slider-vertical; /* WebKit */
+            width: 8px;
+            height: 60px;
+            padding: 0;
+            margin: 5px 0;
+        }
+
+        /* Neuron Component Layout */
+        .neuron-controls {
+            display: flex;
+            padding: 5px;
+            gap: 5px;
+            align-items: flex-end;
+        }
+
+        .neuron-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .neuron-slider-label {
+            font-size: 9px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .neuron-amplifier-output {
+            font-size: 8px;
+            color: #3498db;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 3px;
+            border-radius: 2px;
+            border: 1px solid #3498db;
+            margin-bottom: 2px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .neuron-slider-value {
+            font-size: 8px;
+            margin-top: 2px;
+        }
+
+        .neuron-bias-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 5px;
+            border-left: 1px solid #7f8c8d;
+            min-width: 40px;
+        }
+
+        /* Compact neurons (many inputs, e.g. 12 weather indicators) */
+        .node.compact .neuron-amplifier-output {
+            min-width: 18px;
+            padding: 1px 1px;
+            font-size: 7px;
+        }
+        .node.compact .neuron-slider-value { font-size: 7px; }
+        .node.compact .neuron-slider-label { font-size: 8px; }
+        .node.compact .neuron-controls { gap: 2px; padding: 4px 3px; }
+
+        /* --- Nodes (Components) --- */
+        .node {
+            position: absolute;
+            background: var(--component-bg);
+            border: 2px solid black;
+            color: black;
+            padding: 0; /* Padding handled by children */
+            width: 140px;
+            border-radius: 4px;
+            user-select: none;
+            z-index: 10;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .node-header {
+            background: #bdc3c7;
+            padding: 5px 8px;
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 2px solid black;
+            display: flex;
+            justify-content: space-between;
+            cursor: move;
+        }
+
+        .delete-btn { color: #c0392b; cursor: pointer; font-weight: 900; }
+
+        .node-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        /* Socket Containers */
+        .ports-container {
+            display: flex;
+            justify-content: space-around;
+            padding: 0;
+            background: transparent;
+        }
+
+        /* Sockets */
+        .socket {
+            width: 20px;
+            height: 10px; /* Half height */
+            border: 2px solid black;
+            cursor: crosshair;
+            position: relative;
+            z-index: 100;
+            transition: transform 0.2s;
+            box-sizing: content-box; /* Ensure borders add to size */
+        }
+        .socket[data-type="out"] {
+            width: 14px;
+            height: 20px;
+            background: linear-gradient(to right, #e67e22, #f39c12, #e67e22);
+            border: 1px solid #333;
+            border-bottom: none;
+            border-radius: 3px 3px 0 0;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 100;
+        }
+        .socket[data-type="out"]::after { /* Tip */
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 3px;
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(90deg, #bdc3c7, #ecf0f1, #bdc3c7);
+            border: 1px solid #7f8c8d;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .socket[data-type="in"] {
+            background: transparent;
+            border-radius: 12px 12px 0 0; /* Top half - Flat bottom */
+            border-bottom: 0;
+            margin-top: 2px;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.4);
+        }
+        .socket:hover { transform: scale(1.3); }
+
+        .drag-jack {
+            position: absolute;
+            width: 14px;
+            height: 24px;
+            background: linear-gradient(to right, #e67e22, #f39c12, #e67e22);
+            border: 1px solid #333;
+            border-radius: 3px 3px 2px 2px;
+            z-index: 200;
+            pointer-events: none;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        .drag-jack::after { /* Tip */
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 3px;
+            width: 6px;
+            height: 8px;
+            background: linear-gradient(90deg, #bdc3c7, #ecf0f1, #bdc3c7);
+            border: 1px solid #7f8c8d;
+            border-radius: 2px 2px 0 0;
+        }
+        .drag-jack::before { /* Insulator */
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 3px;
+            width: 6px;
+            height: 2px;
+            background: #333;
+            z-index: 201;
+        }
+
+        /* Specific Module Styles (widths set in JS per task) */
+        .input-module {
+            background: #dff9fb;
+            z-index: 15; /* Ensure above wires */
+        }
+        .output-module {
+            background: #dff9fb;
+            z-index: 15;
+        }
+
+        /* Grouped input sockets (one group per day) */
+        .day-group {
+            border: 1px solid #b2bec3;
+            border-radius: 4px;
+            margin: 0 3px;
+            padding: 0 3px 2px;
+            flex: 1;
+        }
+        .day-group-header {
+            font-size: 9px;
+            font-weight: bold;
+            text-align: center;
+            color: #2c3e50;
+            border-top: 1px solid #dfe6e9;
+            margin-top: 2px;
+            padding-top: 2px;
+        }
+
+        /* 3-day history slots */
+        .seq-slot {
+            width: 66px;
+            border: 2px dashed #7f8c8d;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.5);
+            text-align: center;
+            padding: 3px 2px;
+        }
+        .seq-slot.filled {
+            border-style: solid;
+            border-color: #2c3e50;
+            background: white;
+        }
+        .seq-slot-emoji { font-size: 18px; line-height: 22px; }
+        .seq-slot-label { font-size: 8px; color: #7f8c8d; font-weight: bold; }
+
+        /* Weather type picker buttons */
+        .type-btn {
+            border: 1px solid #7f8c8d;
+            border-radius: 4px;
+            background: white;
+            padding: 2px 3px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 15px;
+            min-width: 46px;
+            transition: transform 0.1s;
+        }
+        .type-btn:hover { background: #f1c40f; transform: scale(1.08); }
+        .type-btn div { font-size: 7px; font-weight: bold; }
+
+        .seq-clear {
+            font-size: 10px;
+            color: #c0392b;
+            cursor: pointer;
+            font-weight: bold;
+            align-self: center;
+            padding: 0 4px;
+        }
+
+        .drop-zone {
+            margin: 10px;
+            height: 60px;
+            border: 2px dashed #7f8c8d;
+            background: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .active-card {
+            background: white;
+            border: 2px solid black;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 90%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* --- Wires --- */
+        path.wire-bg { stroke: black; stroke-width: 8; fill: none; stroke-linecap: round; }
+        path.wire-fg { stroke: white; stroke-width: 3; fill: none; stroke-linecap: round; transition: stroke 0.2s; }
+
+        /* Learning Rate Control */
+        #learning-rate-control {
+            position: absolute;
+            top: 20px; /* Align with output module */
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid white;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            z-index: 55;
+            color: white;
+            font-size: 11px;
+        }
+
+        #learning-rate-control label {
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        #learning-rate-control .lr-value {
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 10px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        #lr-slider {
+            height: 200px !important; /* Even taller slider */
+            position: relative;
+        }
+
+        .lr-slider-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .lr-marks {
+            display: flex;
+            flex-direction: column;
+            height: 200px;
+            font-size: 8px;
+            color: #bbb;
+            padding: 0;
+            margin-left: 5px;
+            position: relative;
+        }
+
+        .lr-mark {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .lr-mark::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            width: 6px;
+            height: 2px;
+            background: white;
+        }
+
+        .lr-mark-0 {
+            top: 0; /* 10^0 at the top */
+        }
+
+        .lr-mark-1 {
+            top: 50px; /* 10^-1 */
+        }
+
+        .lr-mark-2 {
+            top: 100px; /* 10^-2 */
+        }
+
+        .lr-mark-3 {
+            top: 150px; /* 10^-3 */
+        }
+
+        .lr-mark-4 {
+            bottom: 0; /* 10^-4 at the bottom */
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h2>NEURAL BLUEPRINT</h2>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 3px;">
+            <select id="task-select" onchange="switchTask(this.value)"
+                    style="background:#2c3e50; color:white; border:1px solid white; border-radius:3px; font-family:inherit; font-size:11px; padding:2px 4px; cursor:pointer;">
+                <optgroup label="Starters">
+                    <option value="TUT_HOT">🧊 Hot or Cold?</option>
+                    <option value="TUT_RAIN">🌦️ Rain Detector</option>
+                </optgroup>
+                <optgroup label="Classification">
+                    <option value="FRUIT">🍎 Fruits</option>
+                    <option value="VEHICLES">🚗 Vehicles</option>
+                    <option value="ANIMALS">🐕 Animals</option>
+                    <option value="FLOWERS">🌹 Flowers</option>
+                </optgroup>
+                <optgroup label="Recommendation">
+                    <option value="MOVIES">🎬 Movie Night</option>
+                </optgroup>
+                <optgroup label="Prediction">
+                    <option value="WEATHER">🌦️ Weather</option>
+                </optgroup>
+            </select>
+            <small id="mission-text">Mission: Classify the Fruit</small>
+        </div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button id="train-btn" class="hdr-btn" onclick="trainStep()" style="background: #27ae60;" disabled title="Load a card first">Train Card</button>
+        <button id="epoch-btn" class="hdr-btn" onclick="trainEpochClick()" style="background: #2980b9;" title="One gradient-descent step on every card">Train Epoch</button>
+        <button id="auto-btn" class="hdr-btn" onclick="toggleAutoTrain()" style="background: #8e44ad;" title="Train continuously until every fruit is classified">&#9654; Auto-Train</button>
+        <button class="hdr-btn" onclick="toggleNetLibrary()" style="background: #16a085;" title="Save and load networks">🧠 Networks</button>
+        <button class="hdr-btn" onclick="resetCanvas()" style="background: #e74c3c;">Reset Lab</button>
+    </div>
+</header>
+
+<div id="game-container">
+    <div id="toolbox">
+        <div class="tool-item" onclick="startTutorial()" style="background:#3498db; color:white; cursor:pointer;">
+            🎓 Start Tutorial
+        </div>
+        <h3>Components</h3>
+        <div class="tool-item" draggable="true" ondragstart="dragTool(event, 'amplifier')">
+            Amplifier (× W)
+        </div>
+        <div class="tool-item" draggable="true" ondragstart="dragTool(event, 'nucleus')">
+            Nucleus (ReLU)
+        </div>
+        <div class="tool-item" draggable="true" ondragstart="dragTool(event, 'neuron')">
+            Neuron
+        </div>
+        <div class="tool-item build-btn" onclick="autoBuild()">
+            &#9889; Auto-Build Network
+        </div>
+        <div class="tool-item build-btn" onclick="autoBuildDeep()">
+            &#9889; Deep Network (2 Layers)
+        </div>
+
+        <div style="margin-top: auto; color: #ddd; font-size: 0.75em; line-height: 1.5em;">
+            <p><strong>What's happening:</strong></p>
+            <strong style="color:#3498db">Forward pass:</strong> a card's features flow UP the wires. Each Neuron computes <em>ReLU(W&middot;inputs + b)</em>.<br>
+            <strong style="color:#27ae60">Output:</strong> classification turns scores into % confidence (softmax); prediction outputs the number itself.<br>
+            <strong style="color:#e74c3c">Loss:</strong> how wrong the guess is (lower = better).<br>
+            <strong style="color:#f1c40f">Training:</strong> gradient descent nudges every weight downhill on the loss &mdash; watch the sliders move by themselves!
+        </div>
+    </div>
+
+    <div id="canvas-area" ondrop="dropOnCanvas(event)" ondragover="allowDrop(event)">
+        <div id="canvas-world">
+            <svg id="circuit-svg"></svg>
+        </div>
+
+        <div id="tutorial-panel"></div>
+
+        <div id="zoom-control">
+            <button onclick="setZoom(zoom - 0.1)" title="Zoom out">−</button>
+            <span id="zoom-display" onclick="resetView()" title="Reset zoom &amp; position">100%</span>
+            <button onclick="setZoom(zoom + 0.1)" title="Zoom in">+</button>
+        </div>
+
+        <div id="stats-panel">
+            <div class="stats-row">
+                <div class="stat">Epoch<b id="epoch-num">0</b></div>
+                <div class="stat">Loss<b id="avg-loss">&mdash;</b></div>
+                <div class="stat" title="Cards the network trains on">Train<b id="acc-display">&mdash;</b></div>
+                <div class="stat" title="Held-out cards — never trained on">Test<b id="test-display" style="color:#f1c40f">&mdash;</b></div>
+            </div>
+            <canvas id="loss-chart" width="230" height="90"></canvas>
+            <div class="chart-legend">
+                <span class="loss-key">&#9644; loss</span>
+                <span class="acc-key">&#9644; train</span>
+                <span style="color:#f1c40f">&#9644; test</span>
+            </div>
+        </div>
+
+        <div id="learning-rate-control">
+            <label>Learning Rate</label>
+            <div class="lr-value" id="lr-display">0.100</div>
+            <div class="lr-slider-container">
+                <input type="range" id="lr-slider" class="vertical-slider"
+                       min="-4" max="0" step="0.05" value="-1"
+                       oninput="updateLearningRate(this.value)"
+                       onmousedown="event.stopPropagation()">
+                <div class="lr-marks">
+                    <div class="lr-mark lr-mark-0">10<sup>0</sup></div>
+                    <div class="lr-mark lr-mark-1">10<sup>-1</sup></div>
+                    <div class="lr-mark lr-mark-2">10<sup>-2</sup></div>
+                    <div class="lr-mark lr-mark-3">10<sup>-3</sup></div>
+                    <div class="lr-mark lr-mark-4">10<sup>-4</sup></div>
+                </div>
+            </div>
+        </div>
+
+        </div>
+
+    <div id="cards-btn" onclick="toggleCards()" title="View Cards">🎴</div>
+
+    <div id="cards-container">
+        <div class="cards-header">
+            <span>Data Cards — click one to load it</span>
+            <span class="cards-close" onclick="toggleCards()" title="Close">×</span>
+        </div>
+        <div class="cards-section-title">📚 Training Set — the network learns from these</div>
+        <div id="cards-grid"></div>
+        <div class="cards-section-title">🧪 Test Set — held out, never trained on</div>
+        <div id="cards-grid-test"></div>
+        </div>
+
+    <div id="card-builder" onclick="closeCardBuilder()"></div>
+
+    <div id="net-library" onclick="toggleNetLibrary(false)"></div>
+</div>
+
+<script>
+    /* --- Game Configuration ---
+       kind: 'classify' → softmax + cross-entropy, one output per class
+       kind: 'predict'  → single numeric output, ½·(prediction − target)² loss
+       Every dataset below was verified learnable by this exact model. */
+    const TASKS = {
+        FRUIT: {
+            name: "Classify the Fruit",
+            kind: "classify",
+            inputs: ["Sweetness", "Juiciness", "Tartness", "Size"],
+            outputs: ["Pome", "Tropical", "Melon", "Berry", "Citrus", "Stone Fruit"],
+            cards: [
+                { "name": "Apple",       "img": "🍎",  "features": [0.50, 0.45, 0.35, 0.50], "type": "Pome" },
+                { "name": "Pear",        "img": "🍐",  "features": [0.55, 0.50, 0.25, 0.55], "type": "Pome" },
+                { "name": "Banana",      "img": "🍌",  "features": [0.90, 0.20, 0.05, 0.45], "type": "Tropical" },
+                { "name": "Mango",       "img": "🥭",  "features": [0.95, 0.50, 0.10, 0.50], "type": "Tropical" },
+                { "name": "Pineapple",   "img": "🍍",  "features": [0.90, 0.55, 0.40, 0.60], "type": "Tropical" },
+                { "name": "Watermelon",  "img": "🍉",  "features": [0.65, 0.95, 0.05, 1.00], "type": "Melon" },
+                { "name": "Melon",       "img": "🍈",  "features": [0.70, 0.90, 0.05, 0.90], "type": "Melon" },
+                { "name": "Lemon",       "img": "🍋",  "features": [0.10, 0.75, 0.95, 0.35], "type": "Citrus" },
+                { "name": "Lime",        "img": "🍋‍🟩", "features": [0.05, 0.70, 0.95, 0.30], "type": "Citrus" },
+                { "name": "Orange",      "img": "🍊",  "features": [0.50, 0.85, 0.60, 0.40], "type": "Citrus" },
+                { "name": "Grapefruit",  "img": "🍊",  "features": [0.35, 0.80, 0.75, 0.55], "type": "Citrus" },
+                { "name": "Cherry",      "img": "🍒",  "features": [0.75, 0.60, 0.30, 0.15], "type": "Stone Fruit" },
+                { "name": "Peach",       "img": "🍑",  "features": [0.80, 0.75, 0.20, 0.50], "type": "Stone Fruit" },
+                { "name": "Nectarine",   "img": "🍑",  "features": [0.70, 0.65, 0.35, 0.35], "type": "Stone Fruit" },
+                { "name": "Strawberry",  "img": "🍓",  "features": [0.50, 0.55, 0.45, 0.20], "type": "Berry" },
+                { "name": "Blueberries", "img": "🫐",  "features": [0.40, 0.50, 0.40, 0.05], "type": "Berry" },
+                { "name": "Kiwi",        "img": "🥝",  "features": [0.45, 0.55, 0.50, 0.25], "type": "Berry" },
+                { "name": "Green Apple", "img": "🍏",  "features": [0.45, 0.50, 0.40, 0.50], "type": "Pome", "test": true },
+                { "name": "Tangerine",   "img": "🍊",  "features": [0.55, 0.80, 0.50, 0.35], "type": "Citrus", "test": true },
+                { "name": "Cantaloupe",  "img": "🍈",  "features": [0.72, 0.88, 0.05, 0.85], "type": "Melon", "test": true },
+                { "name": "Papaya",      "img": "🥭",  "features": [0.85, 0.55, 0.15, 0.55], "type": "Tropical", "test": true },
+                { "name": "Apricot",     "img": "🍑",  "features": [0.70, 0.60, 0.30, 0.30], "type": "Stone Fruit", "test": true },
+                { "name": "Gooseberry",  "img": "🫐",  "features": [0.35, 0.50, 0.50, 0.15], "type": "Berry", "test": true }
+            ]
+        },
+        VEHICLES: {
+            name: "Classify the Vehicle",
+            kind: "classify",
+            inputs: ["Speed", "Weight", "Wheels", "Motor"],
+            outputs: ["Pedal", "Motorbike", "Car", "Truck", "Boat", "Aircraft"],
+            cards: [
+                { "name": "Bicycle",      "img": "🚲",  "features": [0.10, 0.02, 0.30, 0.00], "type": "Pedal" },
+                { "name": "Kick Scooter", "img": "🛴",  "features": [0.08, 0.02, 0.30, 0.00], "type": "Pedal" },
+                { "name": "Motorcycle",   "img": "🏍️", "features": [0.75, 0.10, 0.25, 0.65], "type": "Motorbike" },
+                { "name": "Scooter",      "img": "🛵",  "features": [0.40, 0.08, 0.25, 0.40], "type": "Motorbike" },
+                { "name": "Car",          "img": "🚗",  "features": [0.60, 0.35, 0.65, 0.60], "type": "Car" },
+                { "name": "Taxi",         "img": "🚕",  "features": [0.55, 0.35, 0.65, 0.60], "type": "Car" },
+                { "name": "Race Car",     "img": "🏎️", "features": [1.00, 0.30, 0.65, 0.90], "type": "Car" },
+                { "name": "Truck",        "img": "🚚",  "features": [0.50, 0.80, 0.80, 0.80], "type": "Truck" },
+                { "name": "Bus",          "img": "🚌",  "features": [0.40, 0.70, 0.70, 0.70], "type": "Truck" },
+                { "name": "Tractor",      "img": "🚜",  "features": [0.15, 0.60, 0.60, 0.70], "type": "Truck" },
+                { "name": "Speedboat",    "img": "🚤",  "features": [0.40, 0.50, 0.00, 0.60], "type": "Boat" },
+                { "name": "Sailboat",     "img": "⛵",  "features": [0.20, 0.40, 0.00, 0.05], "type": "Boat" },
+                { "name": "Ship",         "img": "🚢",  "features": [0.30, 1.00, 0.00, 0.90], "type": "Boat" },
+                { "name": "Airplane",     "img": "✈️",  "features": [1.00, 0.90, 0.50, 1.00], "type": "Aircraft" },
+                { "name": "Helicopter",   "img": "🚁",  "features": [0.70, 0.50, 0.10, 0.90], "type": "Aircraft" },
+                { "name": "Rocket",       "img": "🚀",  "features": [1.00, 0.95, 0.00, 1.00], "type": "Aircraft" },
+                { "name": "Tandem Bike",  "img": "🚲",  "features": [0.12, 0.03, 0.30, 0.00], "type": "Pedal", "test": true },
+                { "name": "Moped",        "img": "🛵",  "features": [0.35, 0.07, 0.25, 0.35], "type": "Motorbike", "test": true },
+                { "name": "Police Car",   "img": "🚓",  "features": [0.65, 0.35, 0.65, 0.65], "type": "Car", "test": true },
+                { "name": "Delivery Truck","img": "🚛", "features": [0.45, 0.85, 0.85, 0.80], "type": "Truck", "test": true },
+                { "name": "Ferry",        "img": "⛴️",  "features": [0.25, 0.90, 0.00, 0.80], "type": "Boat", "test": true },
+                { "name": "Private Jet",  "img": "🛩️",  "features": [0.90, 0.60, 0.30, 0.95], "type": "Aircraft", "test": true }
+            ]
+        },
+        ANIMALS: {
+            name: "Recognize the Animal",
+            kind: "classify",
+            inputs: ["Size", "Legs", "Wings", "Fur", "Swims"],
+            outputs: ["Mammal", "Bird", "Fish", "Reptile", "Insect"],
+            cards: [
+                { "name": "Dog",       "img": "🐕", "features": [0.50, 0.66, 0.00, 0.90, 0.10], "type": "Mammal" },
+                { "name": "Cat",       "img": "🐈", "features": [0.35, 0.66, 0.00, 0.90, 0.00], "type": "Mammal" },
+                { "name": "Horse",     "img": "🐎", "features": [0.85, 0.66, 0.00, 0.40, 0.00], "type": "Mammal" },
+                { "name": "Rabbit",    "img": "🐇", "features": [0.25, 0.66, 0.00, 1.00, 0.00], "type": "Mammal" },
+                { "name": "Eagle",     "img": "🦅", "features": [0.40, 0.33, 1.00, 0.10, 0.00], "type": "Bird" },
+                { "name": "Parrot",    "img": "🦜", "features": [0.20, 0.33, 1.00, 0.10, 0.00], "type": "Bird" },
+                { "name": "Penguin",   "img": "🐧", "features": [0.35, 0.33, 0.50, 0.20, 0.90], "type": "Bird" },
+                { "name": "Duck",      "img": "🦆", "features": [0.25, 0.33, 1.00, 0.10, 0.70], "type": "Bird" },
+                { "name": "Fish",      "img": "🐟", "features": [0.30, 0.00, 0.00, 0.00, 1.00], "type": "Fish" },
+                { "name": "Shark",     "img": "🦈", "features": [0.80, 0.00, 0.00, 0.00, 1.00], "type": "Fish" },
+                { "name": "Angelfish", "img": "🐠", "features": [0.15, 0.00, 0.00, 0.00, 1.00], "type": "Fish" },
+                { "name": "Snake",     "img": "🐍", "features": [0.40, 0.00, 0.00, 0.00, 0.20], "type": "Reptile" },
+                { "name": "Lizard",    "img": "🦎", "features": [0.15, 0.66, 0.00, 0.00, 0.10], "type": "Reptile" },
+                { "name": "Turtle",    "img": "🐢", "features": [0.30, 0.66, 0.00, 0.00, 0.80], "type": "Reptile" },
+                { "name": "Crocodile", "img": "🐊", "features": [0.80, 0.66, 0.00, 0.00, 0.70], "type": "Reptile" },
+                { "name": "Bee",       "img": "🐝", "features": [0.05, 1.00, 0.80, 0.30, 0.00], "type": "Insect" },
+                { "name": "Butterfly", "img": "🦋", "features": [0.10, 1.00, 1.00, 0.00, 0.00], "type": "Insect" },
+                { "name": "Ant",       "img": "🐜", "features": [0.02, 1.00, 0.00, 0.00, 0.00], "type": "Insect" },
+                { "name": "Wolf",        "img": "🐺", "features": [0.55, 0.66, 0.00, 0.85, 0.05], "type": "Mammal", "test": true },
+                { "name": "Owl",         "img": "🦉", "features": [0.30, 0.33, 1.00, 0.15, 0.00], "type": "Bird", "test": true },
+                { "name": "Swan",        "img": "🦢", "features": [0.40, 0.33, 0.90, 0.10, 0.60], "type": "Bird", "test": true },
+                { "name": "Goldfish",    "img": "🐠", "features": [0.05, 0.00, 0.00, 0.00, 1.00], "type": "Fish", "test": true },
+                { "name": "Gecko",       "img": "🦎", "features": [0.10, 0.66, 0.00, 0.00, 0.05], "type": "Reptile", "test": true },
+                { "name": "Grasshopper", "img": "🦗", "features": [0.08, 1.00, 0.60, 0.00, 0.00], "type": "Insect", "test": true }
+            ]
+        },
+        FLOWERS: {
+            name: "Classify the Flower",
+            kind: "classify",
+            inputs: ["Petal Size", "Petal Count", "Stem Height", "Fragrance"],
+            outputs: ["Rose", "Tulip", "Sunflower", "Daisy", "Blossom", "Hibiscus"],
+            cards: [
+                { "name": "Red Rose",       "img": "🌹", "features": [0.60, 0.60, 0.60, 0.90], "type": "Rose" },
+                { "name": "Garden Rose",    "img": "🌹", "features": [0.55, 0.55, 0.50, 0.85], "type": "Rose" },
+                { "name": "Tulip",          "img": "🌷", "features": [0.50, 0.20, 0.50, 0.30], "type": "Tulip" },
+                { "name": "Dutch Tulip",    "img": "🌷", "features": [0.55, 0.25, 0.45, 0.25], "type": "Tulip" },
+                { "name": "Sunflower",      "img": "🌻", "features": [0.90, 0.90, 1.00, 0.20], "type": "Sunflower" },
+                { "name": "Wild Sunflower", "img": "🌻", "features": [0.85, 0.95, 0.90, 0.15], "type": "Sunflower" },
+                { "name": "Daisy",          "img": "🌼", "features": [0.20, 0.80, 0.30, 0.10], "type": "Daisy" },
+                { "name": "Oxeye Daisy",    "img": "🌼", "features": [0.25, 0.75, 0.35, 0.15], "type": "Daisy" },
+                { "name": "Cherry Blossom", "img": "🌸", "features": [0.15, 0.20, 0.05, 0.50], "type": "Blossom" },
+                { "name": "Plum Blossom",   "img": "🌸", "features": [0.20, 0.25, 0.10, 0.60], "type": "Blossom" },
+                { "name": "Hibiscus",       "img": "🌺", "features": [0.70, 0.20, 0.30, 0.40], "type": "Hibiscus" },
+                { "name": "Red Hibiscus",   "img": "🌺", "features": [0.75, 0.25, 0.35, 0.45], "type": "Hibiscus" },
+                { "name": "White Rose",      "img": "🌹", "features": [0.58, 0.58, 0.55, 0.80], "type": "Rose", "test": true },
+                { "name": "Yellow Tulip",    "img": "🌷", "features": [0.52, 0.22, 0.48, 0.28], "type": "Tulip", "test": true },
+                { "name": "Dwarf Sunflower", "img": "🌻", "features": [0.80, 0.85, 0.70, 0.18], "type": "Sunflower", "test": true },
+                { "name": "Chamomile",       "img": "🌼", "features": [0.18, 0.70, 0.25, 0.20], "type": "Daisy", "test": true },
+                { "name": "Apple Blossom",   "img": "🌸", "features": [0.18, 0.22, 0.08, 0.55], "type": "Blossom", "test": true },
+                { "name": "Pink Hibiscus",   "img": "🌺", "features": [0.72, 0.22, 0.32, 0.42], "type": "Hibiscus", "test": true }
+            ]
+        },
+        TUT_HOT: {
+            name: "Hot or Cold?",
+            kind: "classify",
+            inputs: ["Temperature"],
+            outputs: ["Cold", "Warm"],
+            lrLog: -0.5, // tiny task: a hot learning rate converges in seconds
+            cards: [
+                { "name": "Ice Cube",   "img": "🧊", "features": [0.05], "type": "Cold" },
+                { "name": "Snowman",    "img": "⛄", "features": [0.15], "type": "Cold" },
+                { "name": "Autumn Day", "img": "🍂", "features": [0.35], "type": "Cold" },
+                { "name": "Sunny Day",  "img": "☀️", "features": [0.70], "type": "Warm" },
+                { "name": "Desert",     "img": "🏜️", "features": [0.90], "type": "Warm" },
+                { "name": "Fire",       "img": "🔥", "features": [1.00], "type": "Warm" },
+                { "name": "Freezer",    "img": "🥶", "features": [0.10], "type": "Cold", "test": true },
+                { "name": "Beach Day",  "img": "🏖️", "features": [0.80], "type": "Warm", "test": true }
+            ]
+        },
+        TUT_RAIN: {
+            name: "Rain Detector",
+            kind: "classify",
+            inputs: ["Clouds", "Humidity"],
+            outputs: ["Dry", "Rain"],
+            lrLog: -0.5, // tiny task: a hot learning rate converges in seconds
+            cards: [
+                { "name": "Clear Sky",    "img": "☀️", "features": [0.10, 0.30], "type": "Dry" },
+                { "name": "Light Clouds", "img": "🌤️", "features": [0.30, 0.45], "type": "Dry" },
+                { "name": "Windy",        "img": "💨", "features": [0.45, 0.25], "type": "Dry" },
+                { "name": "Desert Air",   "img": "🌵", "features": [0.55, 0.10], "type": "Dry" },
+                { "name": "Overcast",     "img": "☁️", "features": [0.85, 0.60], "type": "Rain" },
+                { "name": "Drizzle",      "img": "🌦️", "features": [0.70, 0.75], "type": "Rain" },
+                { "name": "Downpour",     "img": "🌧️", "features": [0.90, 0.90], "type": "Rain" },
+                { "name": "Thunderstorm", "img": "⛈️", "features": [1.00, 0.95], "type": "Rain" },
+                { "name": "Crisp Morning","img": "🍃", "features": [0.20, 0.50], "type": "Dry", "test": true },
+                { "name": "Grey Evening", "img": "🌥️", "features": [0.75, 0.70], "type": "Rain", "test": true }
+            ]
+        },
+        MOVIES: (() => {
+            // Netflix-style: the last three movies you watched (each described by
+            // four vibes) → which genre is the best match for tonight.
+            const TYPES = [
+                { name: "Explosion Max", img: "💥", ind: [0.95, 0.15, 0.25, 0.10] },
+                { name: "Kung Fu Fury",  img: "🥋", ind: [0.90, 0.30, 0.20, 0.15] },
+                { name: "Space Battles", img: "🚀", ind: [0.85, 0.20, 0.15, 0.20] },
+                { name: "Laugh Riot",    img: "🤣", ind: [0.15, 0.95, 0.05, 0.30] },
+                { name: "Silly Pets",    img: "🐹", ind: [0.10, 0.90, 0.05, 0.40] },
+                { name: "Clown School",  img: "🤡", ind: [0.20, 0.85, 0.15, 0.25] },
+                { name: "Haunted Manor", img: "👻", ind: [0.20, 0.05, 0.95, 0.10] },
+                { name: "Zombie Dawn",   img: "🧟", ind: [0.40, 0.10, 0.90, 0.05] },
+                { name: "Creepy Doll",   img: "🎃", ind: [0.15, 0.10, 0.85, 0.10] },
+                { name: "Love in Paris", img: "💕", ind: [0.05, 0.25, 0.05, 0.95] },
+                { name: "Wedding Bells", img: "💍", ind: [0.10, 0.35, 0.05, 0.90] },
+                { name: "First Dance",   img: "💃", ind: [0.10, 0.30, 0.10, 0.85] }
+            ];
+            const GENRES = ["Action", "Comedy", "Horror", "Romance"];
+            // Hidden rule: your taste profile is a recency-weighted blend of what
+            // you watched (last movie counts most); recommend the top genre.
+            // Features: [0-3] first watched, [4-7] then, [8-11] just watched.
+            const rule = f => {
+                const p = [0, 1, 2, 3].map(d => 0.2 * f[d] + 0.3 * f[4 + d] + 0.5 * f[8 + d]);
+                return GENRES[p.indexOf(Math.max(...p))];
+            };
+            const SEQS = [
+                ["Explosion Max", "Kung Fu Fury", "Space Battles", "Action Marathon"],
+                ["Laugh Riot", "Silly Pets", "Clown School", "Comedy Binge"],
+                ["Haunted Manor", "Zombie Dawn", "Creepy Doll", "Fright Fest"],
+                ["Love in Paris", "Wedding Bells", "First Dance", "Romance Weekend"],
+                ["Laugh Riot", "Explosion Max", "Kung Fu Fury", "Turning to Action"],
+                ["Explosion Max", "Laugh Riot", "Silly Pets", "Now for Laughs"],
+                ["Wedding Bells", "Haunted Manor", "Zombie Dawn", "Scare Me More"],
+                ["Zombie Dawn", "Love in Paris", "Wedding Bells", "From Fear to Love"],
+                ["Silly Pets", "Clown School", "Haunted Manor", "Getting Spooky"],
+                ["Kung Fu Fury", "Space Battles", "Love in Paris", "Action Meets Amour"],
+                ["Creepy Doll", "Creepy Doll", "Silly Pets", "Recovering with Laughs"],
+                ["First Dance", "Silly Pets", "Explosion Max", "Ready for Action"],
+                ["Space Battles", "Zombie Dawn", "Space Battles", "Sci-Fi Weekend"],
+                ["Clown School", "Wedding Bells", "First Dance", "Sweet Evenings"],
+                ["Haunted Manor", "Kung Fu Fury", "Zombie Dawn", "Dark & Dangerous"],
+                ["Love in Paris", "Laugh Riot", "Clown School", "Rom-Com Mood"],
+                ["Space Battles", "Silly Pets", "Kung Fu Fury", "Back to Action"],
+                ["Clown School", "Laugh Riot", "First Dance", "Still Laughing"],
+                ["Creepy Doll", "Space Battles", "Haunted Manor", "Spooky Space"],
+                ["First Dance", "Zombie Dawn", "Love in Paris", "Love Conquers Fear"],
+                ["Kung Fu Fury", "Clown School", "Silly Pets", "Fun & Games"],
+                ["Laugh Riot", "Creepy Doll", "Zombie Dawn", "Nightmare Fuel"],
+                ["Love in Paris", "Space Battles", "Explosion Max", "Action Craving"],
+                ["Explosion Max", "Wedding Bells", "Laugh Riot", "Lighten Up"]
+            ];
+            const TEST_SEQS = [
+                ["Kung Fu Fury", "Explosion Max", "Space Battles", "Full Throttle"],
+                ["Silly Pets", "Laugh Riot", "Laugh Riot", "Giggle Night"],
+                ["Zombie Dawn", "Creepy Doll", "Haunted Manor", "Haunted Nights"],
+                ["Wedding Bells", "First Dance", "Love in Paris", "Head Over Heels"],
+                ["Explosion Max", "Haunted Manor", "Creepy Doll", "Turn for the Worse"],
+                ["Laugh Riot", "First Dance", "Wedding Bells", "Falling in Love"]
+            ];
+            const byName = n => TYPES.find(t => t.name === n);
+            const mkCard = (isTest) => ([a, b, c, label]) => {
+                const features = [...byName(a).ind, ...byName(b).ind, ...byName(c).ind];
+                const card = {
+                    name: label,
+                    img: byName(a).img + byName(b).img + byName(c).img,
+                    seq: [a, b, c],
+                    features,
+                    type: rule(features)
+                };
+                if (isTest) card.test = true;
+                return card;
+            };
+            const IND_SHORT = ["Action", "Laughs", "Scares", "Heart"];
+            const DAYS = ["First Watched", "Then", "Just Watched"];
+            return {
+                name: "Recommend the Next Movie",
+                kind: "classify",
+                types: TYPES,
+                rule: rule,
+                days: DAYS,
+                groups: DAYS.map(d => ({ label: d, inputs: IND_SHORT })),
+                inputs: DAYS.flatMap(d => IND_SHORT.map(i => `${i} (${d})`)),
+                outputs: GENRES,
+                pickerHint: "Pick the last 3 movies you watched:",
+                // 2-layer build: 4 hidden neurons initialized toward the
+                // recency blend (0.2 / 0.3 / 0.5) of "their" vibe
+                deepHidden: {
+                    count: 4,
+                    init: (comp, j) => {
+                        comp.w = comp.w.map((_, i) => {
+                            const dim = i % 4, day = Math.floor(i / 4);
+                            const base = dim === j ? [0.2, 0.3, 0.5][day] : 0;
+                            return Math.round((base + (Math.random() - 0.5) * 0.1) * 100) / 100;
+                        });
+                        comp.bias = 0.05;
+                    }
+                },
+                cards: SEQS.map(mkCard(false)).concat(TEST_SEQS.map(mkCard(true)))
+            };
+        })(),
+        WEATHER: (() => {
+            // The user composes a 3-day weather history from these types (each has
+            // the four indicators [Temp, Clouds, Wind, Humidity]); the network sees
+            // all 3 days × 4 indicators = 12 inputs and predicts tomorrow's temperature.
+            const TYPES = [
+                { name: "Heatwave",      img: "🥵", ind: [0.95, 0.05, 0.10, 0.20] },
+                { name: "Sunny",         img: "☀️", ind: [0.70, 0.15, 0.15, 0.35] },
+                { name: "Partly Cloudy", img: "⛅", ind: [0.55, 0.50, 0.25, 0.50] },
+                { name: "Cloudy",        img: "☁️", ind: [0.45, 0.85, 0.30, 0.60] },
+                { name: "Rainy",         img: "🌧️", ind: [0.40, 0.95, 0.50, 0.90] },
+                { name: "Stormy",        img: "⛈️", ind: [0.45, 1.00, 0.90, 0.95] },
+                { name: "Snowy",         img: "🌨️", ind: [0.05, 0.90, 0.40, 0.80] },
+                { name: "Windy",         img: "💨", ind: [0.50, 0.40, 1.00, 0.45] },
+                { name: "Foggy",         img: "🌫️", ind: [0.30, 0.70, 0.05, 0.95] }
+            ];
+            // Hidden rule (linear, for the net to discover): tomorrow's temp is mostly
+            // today's, a little of the past days', cooled by today's clouds/wind/humidity.
+            // Features: [0-3] = 2 days ago, [4-7] = yesterday, [8-11] = today.
+            const rule = f => 0.1 + 0.75 * f[8] + 0.15 * f[4] + 0.05 * f[0]
+                            - 0.1 * f[9] - 0.05 * f[10] - 0.04 * f[11];
+            // Training deck: [2 days ago, yesterday, today] + a story name
+            const SEQS = [
+                ["Sunny", "Sunny", "Sunny", "Endless Sun"],
+                ["Heatwave", "Heatwave", "Heatwave", "Heat Dome"],
+                ["Rainy", "Rainy", "Rainy", "Rain Week"],
+                ["Snowy", "Snowy", "Snowy", "Deep Winter"],
+                ["Snowy", "Cloudy", "Sunny", "Warming Up"],
+                ["Sunny", "Cloudy", "Rainy", "Turning Wet"],
+                ["Sunny", "Windy", "Stormy", "Storm Rolls In"],
+                ["Stormy", "Rainy", "Partly Cloudy", "Clearing Up"],
+                ["Foggy", "Foggy", "Sunny", "Fog Lifts"],
+                ["Cloudy", "Cloudy", "Cloudy", "Grey Days"],
+                ["Rainy", "Partly Cloudy", "Sunny", "After the Rain"],
+                ["Heatwave", "Sunny", "Partly Cloudy", "Cooling Off"],
+                ["Windy", "Windy", "Windy", "Wind Week"],
+                ["Partly Cloudy", "Sunny", "Heatwave", "Heating Up"],
+                ["Cloudy", "Rainy", "Stormy", "Getting Worse"],
+                ["Stormy", "Snowy", "Cloudy", "Cold Front"],
+                ["Snowy", "Heatwave", "Heatwave", "Sudden Scorcher"],
+                ["Heatwave", "Snowy", "Snowy", "Sudden Freeze"]
+            ];
+            // Held-out sequences the network never trains on
+            const TEST_SEQS = [
+                ["Rainy", "Cloudy", "Partly Cloudy", "Slow Clearing"],
+                ["Sunny", "Sunny", "Windy", "Wind Picks Up"],
+                ["Partly Cloudy", "Cloudy", "Rainy", "Slipping to Rain"],
+                ["Foggy", "Partly Cloudy", "Heatwave", "Burning Off"],
+                ["Windy", "Stormy", "Snowy", "Blizzard Path"]
+            ];
+            const byName = n => TYPES.find(t => t.name === n);
+            const mkCard = (isTest) => ([a, b, c, label]) => {
+                const features = [...byName(a).ind, ...byName(b).ind, ...byName(c).ind];
+                const card = {
+                    name: label,
+                    img: byName(a).img + byName(b).img + byName(c).img,
+                    seq: [a, b, c],
+                    features,
+                    target: rule(features)
+                };
+                if (isTest) card.test = true;
+                return card;
+            };
+            const cards = SEQS.map(mkCard(false)).concat(TEST_SEQS.map(mkCard(true)));
+            const IND_SHORT = ["Temp", "Cloud", "Wind", "Humid"];
+            const DAYS = ["2 Days Ago", "Yesterday", "Today"];
+            return {
+                name: "Predict Tomorrow's Temperature",
+                kind: "predict",
+                types: TYPES,
+                rule: rule,
+                days: DAYS,
+                groups: DAYS.map(d => ({ label: d, inputs: IND_SHORT })),
+                inputs: DAYS.flatMap(d => IND_SHORT.map(i => `${i} (${d})`)),
+                outputs: ["Tomorrow's Temp"],
+                pickerHint: "Pick the weather, day by day:",
+                tolerance: 0.06,   // "on target" if within ~2°C
+                lrLog: -0.7,       // lr ≈ 0.2: verified stable for the 12 correlated inputs
+                lrFloor: 0.1,      // don't decay further: ill-conditioned dims converge slowly
+                stopLoss: 5e-6,    // train until the fit is tight → unseen combos predict well
+                epochsPerTick: 10, // auto-train runs 10 epochs per tick (needs ~400-600 epochs)
+                format: v => Math.round(v * 35) + "°C",
+                cards: cards
+            };
+        })()
+    };
+
+    let currentTaskKey = 'FRUIT';
+    let currentTask = TASKS[currentTaskKey];
+    let N_FEATURES = currentTask.inputs.length;
+    const PARAM_LIMIT = 3; // weights & biases live in [-3, 3]
+
+    /* --- State Management --- */
+    let components = [];
+    let connections = [];
+    let nextId = 1;
+    let nextWireId = 1;
+    let draggingWire = null;
+    let mousePos = { x: 0, y: 0 };
+    let lastCard = null;
+    let learningRate = 0.1;
+    let epoch = 0;
+    let lossHistory = [];   // one entry per epoch: { loss, acc }
+    let autoTimer = null;
+
+    const canvasArea = document.getElementById('canvas-area');
+    const worldEl = document.getElementById('canvas-world');
+    const svgLayer = document.getElementById('circuit-svg');
+
+    /* --- Zoom & pan: the world scales/translates, coordinates stay in world units --- */
+    let zoom = 1, panX = 0, panY = 0;
+    const worldW = () => canvasArea.clientWidth / zoom;
+    const worldH = () => canvasArea.clientHeight / zoom;
+
+    function applyView() {
+        worldEl.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    }
+
+    function setZoom(z) {
+        zoom = Math.min(1.5, Math.max(0.4, Math.round(z * 20) / 20));
+        worldEl.style.width = (100 / zoom) + '%';
+        worldEl.style.height = (100 / zoom) + '%';
+        applyView();
+        document.getElementById('zoom-display').innerText = Math.round(zoom * 100) + '%';
+        positionFixedModules(); // re-anchor fixed modules + redraw wires
+    }
+
+    function resetView() {
+        panX = 0;
+        panY = 0;
+        setZoom(1);
+    }
+
+    // Zoom out just enough that every component is on screen
+    function zoomToFit() {
+        if (!components.length) return;
+        let maxR = 0, maxB = 0;
+        components.forEach(c => {
+            maxR = Math.max(maxR, (parseFloat(c.dom.style.left) || 0) + c.dom.offsetWidth);
+            maxB = Math.max(maxB, (parseFloat(c.dom.style.top) || 0) + c.dom.offsetHeight);
+        });
+        const zFit = Math.min(canvasArea.clientWidth / (maxR + 25),
+                              canvasArea.clientHeight / (maxB + 25));
+        panX = 0;
+        panY = 0;
+        if (zFit < zoom) setZoom(zFit);
+        else applyView();
+    }
+
+    /* --- Initialization --- */
+    function init() {
+        setTimeout(() => {
+            createFixedModules();
+            createCards();
+            positionFixedModules();
+            evaluateAll();
+            drawChart();
+        }, 50);
+
+        // Initialize learning rate display
+        updateLearningRate(-1);
+
+        document.addEventListener('mousemove', (e) => {
+            const rect = canvasArea.getBoundingClientRect();
+            mousePos = {
+                x: (e.clientX - rect.left - panX) / zoom,
+                y: (e.clientY - rect.top - panY) / zoom
+            };
+            if (draggingWire) updateDragWire();
+        });
+        document.addEventListener('mouseup', endWireDrag);
+
+        // Ctrl/Cmd + scroll zooms; plain scroll pans the canvas
+        canvasArea.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) {
+                setZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
+            } else {
+                panX -= e.deltaX;
+                panY -= e.deltaY;
+                applyView();
+            }
+        }, { passive: false });
+
+        // Drag the empty canvas background to pan
+        canvasArea.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            if (e.target !== canvasArea && e.target !== worldEl && e.target !== svgLayer) return;
+            const sx = e.clientX - panX, sy = e.clientY - panY;
+            const move = (ev) => {
+                panX = ev.clientX - sx;
+                panY = ev.clientY - sy;
+                applyView();
+            };
+            const up = () => {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', up);
+                canvasArea.style.cursor = 'grab';
+            };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', up);
+            canvasArea.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        window.addEventListener('resize', positionFixedModules);
+        window.addEventListener('load', positionFixedModules);
+
+        // Escape closes the card builder, the network library and the cards panel
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            closeCardBuilder();
+            toggleNetLibrary(false);
+            if (document.getElementById('cards-container').style.display === 'block') {
+                toggleCards();
+            }
+        });
+    }
+
+    // Keep the fixed modules anchored (top-center / bottom-center) until
+    // the user drags them somewhere on purpose.
+    function positionFixedModules() {
+        const cx = worldW() / 2;
+        const cy = worldH();
+        const outMod = document.getElementById('out_main');
+        const inMod = document.getElementById('in_main');
+        if (outMod && !outMod.dataset.userMoved) {
+            outMod.style.left = Math.max(10, cx - outMod.offsetWidth / 2) + 'px';
+            outMod.style.top = '20px';
+        }
+        if (inMod && !inMod.dataset.userMoved) {
+            inMod.style.left = Math.max(10, cx - inMod.offsetWidth / 2) + 'px';
+            inMod.style.top = Math.max(150, cy - inMod.offsetHeight - 30) + 'px';
+        }
+        renderConnections();
+    }
+
+    /* --- Module Creation --- */
+    function createFixedModules() {
+        const cx = worldW() / 2;
+        const cy = worldH();
+
+        // --- 1. Output Module (Top) ---
+        const outMod = createNodeDOM('out_main', cx - 220, 20, 'Output Logic');
+        outMod.classList.add('output-module');
+        outMod.style.width = Math.max(240, currentTask.outputs.length * 73) + 'px';
+
+        const display = document.createElement('div');
+        display.style.padding = '10px';
+        display.style.textAlign = 'center';
+        display.innerHTML = '<div id="result-display" style="font-weight:bold; color:#7f8c8d;">Waiting for signal...</div>';
+        outMod.appendChild(display);
+
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'ports-container';
+
+        currentTask.outputs.forEach((label, idx) => {
+            const wrap = document.createElement('div');
+            wrap.style.textAlign = 'center';
+
+            // Value display container
+            const valueDisplay = document.createElement('div');
+            valueDisplay.className = 'output-value-display';
+
+            // Softmax percentage
+            const softmaxDiv = document.createElement('div');
+            softmaxDiv.className = 'output-softmax';
+            softmaxDiv.id = `softmax_${idx}`;
+            softmaxDiv.innerText = currentTask.kind === 'predict' ? '—' : '0%';
+            valueDisplay.appendChild(softmaxDiv);
+
+            // Raw value
+            const rawDiv = document.createElement('div');
+            rawDiv.className = 'output-raw';
+            rawDiv.id = `raw_${idx}`;
+            rawDiv.innerText = '(0.00)';
+            valueDisplay.appendChild(rawDiv);
+
+            wrap.appendChild(valueDisplay);
+
+            // Create Label
+            const labelDiv = document.createElement('div');
+            labelDiv.style.fontSize = '10px';
+            labelDiv.style.marginBottom = '2px';
+            labelDiv.innerText = label;
+
+            wrap.appendChild(labelDiv);
+            wrap.appendChild(createSocket('in', 'out_main', idx));
+
+            inputContainer.appendChild(wrap);
+        });
+        outMod.appendChild(inputContainer);
+
+        components.push({ id: 'out_main', dom: outMod, type: 'output' });
+        worldEl.appendChild(outMod);
+
+
+        // --- 2. Input Module (Bottom) ---
+        const inMod = createNodeDOM('in_main', cx - 150, cy - 220, 'Input Sensor');
+        inMod.classList.add('input-module');
+        inMod.style.width = currentTask.groups
+            ? (N_FEATURES * 50 + 90) + 'px'
+            : Math.max(260, N_FEATURES * 74) + 'px';
+
+        // Output Sockets (Sources)
+        const outputContainer = document.createElement('div');
+        outputContainer.className = 'ports-container';
+
+        const makeSocketWrap = (label, idx, fontSize) => {
+            const wrap = document.createElement('div');
+            wrap.style.textAlign = 'center';
+            wrap.appendChild(createSocket('out', 'in_main', idx));
+            const labelDiv = document.createElement('div');
+            labelDiv.style.fontSize = fontSize;
+            labelDiv.style.marginTop = '2px';
+            labelDiv.innerText = label;
+            wrap.appendChild(labelDiv);
+            return wrap;
+        };
+
+        if (currentTask.groups) {
+            // Sockets grouped per day, with a group header underneath
+            let flatIdx = 0;
+            currentTask.groups.forEach(g => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'day-group';
+                const row = document.createElement('div');
+                row.className = 'ports-container';
+                g.inputs.forEach(label => row.appendChild(makeSocketWrap(label, flatIdx++, '8px')));
+                groupDiv.appendChild(row);
+                const header = document.createElement('div');
+                header.className = 'day-group-header';
+                header.innerText = g.label;
+                groupDiv.appendChild(header);
+                outputContainer.appendChild(groupDiv);
+            });
+        } else {
+            currentTask.inputs.forEach((label, idx) => {
+                outputContainer.appendChild(makeSocketWrap(label, idx, '10px'));
+            });
+        }
+        inMod.insertBefore(outputContainer, inMod.firstChild);
+
+        if (currentTask.types) {
+            // 3-day history slots — the user composes the input sample here
+            const seqRow = document.createElement('div');
+            seqRow.style.cssText = 'display:flex; justify-content:center; gap:8px; margin:8px 0 2px;';
+            currentTask.days.forEach((lab, i) => {
+                const slot = document.createElement('div');
+                slot.className = 'seq-slot';
+                slot.id = `seq_slot_${i}`;
+                slot.innerHTML = `<div class="seq-slot-emoji">?</div><div class="seq-slot-label">${lab}</div>`;
+                seqRow.appendChild(slot);
+            });
+            const clear = document.createElement('div');
+            clear.className = 'seq-clear';
+            clear.innerText = '↺';
+            clear.title = 'Clear the history';
+            clear.onclick = clearWeatherSeq;
+            seqRow.appendChild(clear);
+            inMod.appendChild(seqRow);
+
+            // Weather type picker
+            const hint = document.createElement('div');
+            hint.style.cssText = 'font-size:9px; text-align:center; color:#7f8c8d; font-weight:bold;';
+            hint.innerText = currentTask.pickerHint || 'Pick one for each slot:';
+            inMod.appendChild(hint);
+
+            const picker = document.createElement('div');
+            picker.style.cssText = 'display:flex; flex-wrap:wrap; gap:4px; justify-content:center; padding:5px;';
+            currentTask.types.forEach((t, i) => {
+                const btn = document.createElement('div');
+                btn.className = 'type-btn';
+                btn.title = t.name;
+                btn.innerHTML = `${t.img}<div>${t.name}</div>`;
+                btn.onclick = () => pickWeatherType(i);
+                picker.appendChild(btn);
+            });
+            inMod.appendChild(picker);
+        } else {
+            // Drop Zone
+            const dropZone = document.createElement('div');
+            dropZone.className = 'drop-zone';
+            dropZone.innerText = "Click Cards button to load data";
+            inMod.appendChild(dropZone);
+        }
+
+        components.push({ id: 'in_main', dom: inMod, type: 'input' });
+        worldEl.appendChild(inMod);
+    }
+
+    function createCards() {
+        const trainGrid = document.getElementById('cards-grid');
+        const testGrid = document.getElementById('cards-grid-test');
+        trainGrid.innerHTML = '';
+        testGrid.innerHTML = '';
+        currentTask.cards.forEach((cardData, idx) => {
+            const container = cardData.test ? testGrid : trainGrid;
+            const el = document.createElement('div');
+            el.className = 'data-card' + (cardData.custom ? ' custom' : '');
+            el.id = `card_${idx}`;
+            // Show the training label: supervised learning means the answer is on the card
+            const label = currentTask.kind === 'predict'
+                ? currentTask.format(cardData.target)
+                : cardData.type;
+            const emojiSize = (currentTask.types && !cardData.custom) ? 14 : 24; // sequence cards show 3 emojis
+            el.innerHTML = `<span style="font-size:${emojiSize}px">${cardData.img}</span><strong style="font-size:10px">${cardData.name}</strong><small style="color:#7f8c8d">${label}</small><span class="card-status" id="cardstat_${idx}"></span>`;
+            if (cardData.custom) {
+                const del = document.createElement('span');
+                del.className = 'card-del';
+                del.innerText = '×';
+                del.title = 'Remove this card from the deck';
+                del.onclick = (e) => { e.stopPropagation(); removeCustomCard(idx); };
+                el.appendChild(del);
+            }
+            el.onclick = () => loadCard(idx);
+            container.appendChild(el);
+        });
+
+        // "Make your own" entry
+        const addEl = document.createElement('div');
+        addEl.className = 'data-card add-card';
+        addEl.innerHTML = `<span style="font-size:26px">➕</span><strong style="font-size:10px">Make your own</strong><small style="color:#7f8c8d">test or train</small>`;
+        addEl.onclick = openCardBuilder;
+        testGrid.appendChild(addEl);
+    }
+
+    function toggleCards() {
+        const container = document.getElementById('cards-container');
+        const btn = document.getElementById('cards-btn');
+        if (container.style.display === 'none' || !container.style.display) {
+            container.style.display = 'block';
+            btn.style.display = 'none';
+        } else {
+            container.style.display = 'none';
+            btn.style.display = 'flex';
+        }
+    }
+
+    function loadCard(idx) {
+        const card = currentTask.cards[idx];
+        lastCard = card;
+        trainViewIdx = idx; // epoch showcase continues from here
+
+        // Close cards panel
+        document.getElementById('cards-container').style.display = 'none';
+        document.getElementById('cards-btn').style.display = 'flex';
+
+        showCardInSensor(card);
+        runSimulation(card);
+
+        // Enable train button
+        document.getElementById('train-btn').disabled = false;
+    }
+
+    function showCardInSensor(card) {
+        if (currentTask.types) {
+            if (card && card.seq) {
+                // Sequence card: fill the 3-day history slots
+                weatherSeq = [...card.seq];
+                renderSeqSlots();
+            } else {
+                // Custom sample: not made of predefined types — clear the slots
+                clearWeatherSeq();
+            }
+            return;
+        }
+        const dropZone = document.querySelector('#in_main .drop-zone');
+        if (!dropZone) return;
+        if (!card) {
+            dropZone.innerHTML = "Click Cards button to load data";
+            return;
+        }
+        dropZone.innerHTML = `
+            <div class="active-card">
+                <span style="font-size:24px">${card.img}</span>
+                <div>
+                    <strong>${card.name}</strong><br>
+                    <small>[${card.features.map(f => f.toFixed(2)).join(', ')}]</small>
+                </div>
+            </div>
+        `;
+    }
+
+    /* --- Weather sequence picker (predict tasks with `types`) --- */
+    let weatherSeq = [null, null, null];
+
+    function seqToCard(seq) {
+        const types = seq.map(n => currentTask.types.find(t => t.name === n));
+        const features = types.flatMap(t => t.ind);
+        const card = {
+            name: types.map(t => t.name).join(' → '),
+            img: types.map(t => t.img).join(''),
+            seq: [...seq],
+            features
+        };
+        // The hidden rule provides the ground truth: a number for prediction
+        // tasks, a class label for classification/recommendation tasks
+        if (currentTask.kind === 'predict') card.target = currentTask.rule(features);
+        else card.type = currentTask.rule(features);
+        return card;
+    }
+
+    function pickWeatherType(i) {
+        const t = currentTask.types[i];
+        const empty = weatherSeq.indexOf(null);
+        if (empty !== -1) {
+            weatherSeq[empty] = t.name; // fill chronologically: 2 days ago → today
+        } else {
+            weatherSeq = [weatherSeq[1], weatherSeq[2], t.name]; // a new day dawns: history slides
+        }
+        renderSeqSlots();
+        if (!weatherSeq.includes(null)) {
+            lastCard = seqToCard(weatherSeq);
+            runSimulation(lastCard);
+            document.getElementById('train-btn').disabled = false;
+        }
+    }
+
+    function renderSeqSlots() {
+        weatherSeq.forEach((n, i) => {
+            const slot = document.getElementById(`seq_slot_${i}`);
+            if (!slot) return;
+            const t = n && currentTask.types.find(x => x.name === n);
+            slot.querySelector('.seq-slot-emoji').innerText = t ? t.img : '?';
+            slot.classList.toggle('filled', !!t);
+            slot.title = t ? t.name : 'Pick a weather type below';
+        });
+    }
+
+    function clearWeatherSeq() {
+        weatherSeq = [null, null, null];
+        renderSeqSlots();
+    }
+
+    /* --- Custom card builder: user-made samples for testing or training --- */
+
+    function openCardBuilder() {
+        // Close the cards panel behind the modal
+        document.getElementById('cards-container').style.display = 'none';
+        document.getElementById('cards-btn').style.display = 'flex';
+
+        const isPredict = currentTask.kind === 'predict';
+        // Start from the loaded card when it matches — easy "what if?" tweaking
+        const base = (lastCard && lastCard.features.length === N_FEATURES)
+            ? lastCard.features : new Array(N_FEATURES).fill(0.5);
+
+        const itemName = { FRUIT: 'Fruit', VEHICLES: 'Vehicle', ANIMALS: 'Animal',
+                           FLOWERS: 'Flower', MOVIES: 'Movie Night', WEATHER: 'Weather',
+                           TUT_HOT: 'Thing', TUT_RAIN: 'Sky' }[currentTaskKey] || 'Card';
+
+        const sliderRow = (label, idx) => `
+            <div class="builder-row">
+                <label>${label}</label>
+                <input type="range" class="feat" min="0" max="1" step="0.05" value="${base[idx]}"
+                       oninput="this.parentElement.querySelector('.feat-val').innerText = parseFloat(this.value).toFixed(2)">
+                <span class="feat-val">${base[idx].toFixed(2)}</span>
+            </div>`;
+
+        let featHtml;
+        if (currentTask.groups) {
+            let flatIdx = 0;
+            featHtml = '<div style="display:flex; gap:8px;">' + currentTask.groups.map(g =>
+                `<div class="builder-group"><div class="builder-group-title">${g.label}</div>` +
+                g.inputs.map(label => sliderRow(label, flatIdx++)).join('') + '</div>'
+            ).join('') + '</div>';
+        } else {
+            featHtml = currentTask.inputs.map((label, i) => sliderRow(label, i)).join('');
+        }
+
+        const expectedHtml = isPredict
+            ? `<div class="builder-row"><label>Expected</label>
+                   <input type="range" id="builder-target" min="0" max="1" step="0.01" value="0.5"
+                          oninput="document.getElementById('builder-target-val').innerText = currentTask.format(parseFloat(this.value))">
+                   <span class="feat-val" id="builder-target-val">${currentTask.format(0.5)}</span></div>`
+            : `<div class="builder-row"><label>Expected</label>
+                   <select id="builder-type">${currentTask.outputs.map(o => `<option>${o}</option>`).join('')}</select></div>`;
+
+        const overlay = document.getElementById('card-builder');
+        overlay.innerHTML = `
+            <div class="builder-box" onclick="event.stopPropagation()">
+                <h3 style="margin:0 0 10px">🧪 Create Your Own ${itemName}</h3>
+                <div class="builder-row"><label>Name</label>
+                    <input type="text" id="builder-name" value="My ${itemName}" maxlength="18"></div>
+                <div class="builder-row"><label>Emoji</label>
+                    <input type="text" id="builder-emoji" value="🧪" maxlength="8" style="width:56px"></div>
+                <div class="builder-row"><label>Use as</label>
+                    <select id="builder-split">
+                        <option value="train">📚 Training card — the network learns from it</option>
+                        <option value="test">🧪 Test card — held out, only checks the network</option>
+                    </select></div>
+                <hr style="border:none; border-top:1px solid #b2bec3;">
+                ${featHtml}
+                <hr style="border:none; border-top:1px solid #b2bec3;">
+                ${expectedHtml}
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                    <button class="hdr-btn" style="background:#7f8c8d" onclick="closeCardBuilder()">Cancel</button>
+                    <button class="hdr-btn" style="background:#2980b9" onclick="testCustomCard()"
+                            title="Load it into the sensor and see the network's answer">🔬 Test It</button>
+                    <button class="hdr-btn" style="background:#27ae60" onclick="addCustomCard()"
+                            title="Add it to the deck: it counts in training and accuracy">➕ Add to Deck</button>
+                </div>
+            </div>`;
+        overlay.style.display = 'flex';
+    }
+
+    function closeCardBuilder() {
+        document.getElementById('card-builder').style.display = 'none';
+    }
+
+    function builderCollect() {
+        const features = [...document.querySelectorAll('#card-builder input.feat')]
+            .map(s => parseFloat(s.value));
+        const card = {
+            name: (document.getElementById('builder-name').value.trim() || 'My Card').slice(0, 18),
+            img: document.getElementById('builder-emoji').value.trim() || '🧪',
+            features,
+            custom: true
+        };
+        if (currentTask.kind === 'predict') {
+            card.target = parseFloat(document.getElementById('builder-target').value);
+        } else {
+            card.type = document.getElementById('builder-type').value;
+        }
+        if (document.getElementById('builder-split').value === 'test') card.test = true;
+        return card;
+    }
+
+    function loadCustomCard(card) {
+        lastCard = card;
+        showCardInSensor(card);
+        runSimulation(card);
+        document.getElementById('train-btn').disabled = false;
+    }
+
+    function testCustomCard() {
+        const card = builderCollect();
+        closeCardBuilder();
+        loadCustomCard(card);
+    }
+
+    function addCustomCard() {
+        const card = builderCollect();
+        closeCardBuilder();
+        currentTask.cards.push(card);
+        createCards();
+        loadCustomCard(card);
+        evaluateAll();
+        document.getElementById('mission-text').innerHTML =
+            `🧪 <strong>${card.name}</strong> joined the deck — it now counts in training and accuracy!`;
+    }
+
+    /* --- Network library: save & load networks (each linked to its dataset).
+       The point to feel here: totally different weights can earn the exact
+       same score — save a few nets per dataset and compare fingerprints. --- */
+    const SAVES_KEY = 'neuralBlueprint.networks';
+    const TASK_LABELS = { FRUIT: '🍎 Fruits', VEHICLES: '🚗 Vehicles', ANIMALS: '🐕 Animals',
+                          FLOWERS: '🌹 Flowers', MOVIES: '🎬 Movies', WEATHER: '🌦️ Weather',
+                          TUT_HOT: '🧊 Hot or Cold?', TUT_RAIN: '🌦️ Rain Detector' };
+
+    function getSaves() {
+        try { return JSON.parse(localStorage.getItem(SAVES_KEY)) || []; }
+        catch (e) { return []; }
+    }
+    function setSaves(s) {
+        try { localStorage.setItem(SAVES_KEY, JSON.stringify(s)); }
+        catch (e) { alert("Couldn't save (storage full or blocked)."); }
+    }
+    const escHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // All trainable parameters, flattened — the network's "fingerprint"
+    function flatWeights() {
+        const out = [];
+        components.forEach(c => {
+            if (c.type === 'neuron') out.push(...c.w, c.bias);
+            else if (c.type === 'amplifier') out.push(c.weight);
+            else if (c.type === 'nucleus') out.push(c.bias);
+        });
+        return out.map(v => Math.round(v * 100) / 100);
+    }
+
+    function saveNetwork() {
+        const dyn = components.filter(c => c.type !== 'input' && c.type !== 'output');
+        if (!dyn.length) { alert("Nothing to save — build a network first!"); return; }
+        const saves = getSaves();
+        const defaultName = `Network #${saves.filter(s => s.task === currentTaskKey).length + 1}`;
+        const name = prompt("Name this network:", defaultName);
+        if (name === null) return;
+        const ev = evaluateAll();
+        saves.push({
+            id: 'net_' + Date.now(),
+            name: (name.trim() || defaultName).slice(0, 24),
+            task: currentTaskKey,
+            savedAt: new Date().toISOString(),
+            stats: { epoch: epoch, train: `${ev.correct}/${ev.total}`,
+                     test: `${ev.testCorrect}/${ev.testTotal}` },
+            learningRate: learningRate,
+            epoch: epoch,
+            lossHistory: lossHistory.slice(-300),
+            fingerprint: flatWeights(),
+            components: dyn.map(c => ({
+                id: c.id, type: c.type,
+                x: parseInt(c.dom.style.left) || 20, y: parseInt(c.dom.style.top) || 20,
+                weight: c.weight, bias: c.bias, w: c.w ? [...c.w] : undefined
+            })),
+            connections: connections.map(c => ({ from: c.from, fromPort: c.fromPort,
+                                                 to: c.to, toPort: c.toPort })),
+            customCards: currentTask.cards.filter(c => c.custom)
+        });
+        setSaves(saves);
+        renderNetLibrary();
+        document.getElementById('mission-text').innerHTML =
+            `💾 <strong>${escHtml(name.trim() || defaultName)}</strong> saved! Now ⚡ rebuild & retrain — a totally different network can get the same score.`;
+    }
+
+    function loadNetwork(id) {
+        const save = getSaves().find(s => s.id === id);
+        if (!save || !TASKS[save.task]) return;
+
+        rebuildTask(save.task); // clean slate on the network's own dataset
+
+        // Restore the custom cards this network was trained with
+        currentTask.cards = currentTask.cards.filter(c => !c.custom)
+                                             .concat(save.customCards || []);
+        createCards();
+
+        // Rebuild components (fresh DOM ids, remapped wires)
+        const maxX = Math.max(200, worldW() - 250);
+        const idMap = { in_main: 'in_main', out_main: 'out_main' };
+        save.components.forEach(sc => {
+            const comp = addComponent(sc.type, Math.min(sc.x, maxX), Math.max(0, sc.y));
+            idMap[sc.id] = comp.id;
+            comp.weight = sc.weight;
+            comp.bias = sc.bias;
+            if (sc.w) {
+                comp.w = sc.w.slice(0, N_FEATURES);
+                while (comp.w.length < N_FEATURES) comp.w.push(1.0);
+            }
+        });
+        connections = save.connections.map(sc => ({
+            id: 'wire_' + (nextWireId++),
+            from: idMap[sc.from] || sc.from, fromPort: sc.fromPort,
+            to: idMap[sc.to] || sc.to, toPort: sc.toPort,
+            value: 0
+        }));
+
+        epoch = save.epoch || 0;
+        lossHistory = save.lossHistory || [];
+        if (save.learningRate) {
+            const logV = Math.max(-4, Math.min(0, Math.log10(save.learningRate)));
+            document.getElementById('lr-slider').value = logV;
+            updateLearningRate(logV);
+        }
+
+        syncAllSliders();
+        renderConnections();
+        zoomToFit();
+        evaluateAll();
+        drawChart();
+        toggleNetLibrary(false);
+        document.getElementById('mission-text').innerHTML =
+            `📂 Loaded <strong>${escHtml(save.name)}</strong> (${TASK_LABELS[save.task]}) — same score can hide very different weights!`;
+    }
+
+    function deleteNetwork(id) {
+        setSaves(getSaves().filter(s => s.id !== id));
+        renderNetLibrary();
+    }
+
+    function toggleNetLibrary(show) {
+        const lib = document.getElementById('net-library');
+        const open = lib.style.display === 'flex';
+        const target = show === undefined ? !open : show;
+        if (target) { renderNetLibrary(); lib.style.display = 'flex'; }
+        else lib.style.display = 'none';
+    }
+
+    function drawFingerprint(cv, weights) {
+        const size = 8, perRow = 30;
+        cv.width = Math.min(perRow, weights.length) * size;
+        cv.height = Math.ceil(weights.length / perRow) * size;
+        const ctx = cv.getContext('2d');
+        const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+        weights.forEach((v, i) => {
+            const t = Math.max(-1, Math.min(1, v / PARAM_LIMIT));
+            // blue (negative) → white (zero) → red (positive)
+            const col = t >= 0
+                ? [lerp(236, 231, t), lerp(240, 76, t), lerp(241, 60, t)]
+                : [lerp(236, 52, -t), lerp(240, 152, -t), lerp(241, 219, -t)];
+            ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+            ctx.fillRect((i % perRow) * size, Math.floor(i / perRow) * size, size - 1, size - 1);
+        });
+    }
+
+    function renderNetLibrary() {
+        const lib = document.getElementById('net-library');
+        const saves = getSaves();
+        lib.innerHTML = `
+            <div class="builder-box" style="width:560px" onclick="event.stopPropagation()">
+                <h3 style="margin:0 0 6px">🧠 Network Library</h3>
+                <p style="font-size:11px; margin:0 0 10px;">
+                    🔀 <strong>There is no single "right" network!</strong> Very different weights can earn
+                    the exact same score. Save a few networks for the same dataset and compare their
+                    weight fingerprints (<span style="color:#2980b9">blue</span> = negative,
+                    <span style="color:#c0392b">red</span> = positive).</p>
+                <button class="hdr-btn" style="background:#16a085; width:100%;" onclick="saveNetwork()">
+                    💾 Save the current network (${TASK_LABELS[currentTaskKey]})</button>
+                <div style="max-height:46vh; overflow-y:auto; margin-top:8px;">
+                ${saves.length ? saves.map(s => `
+                    <div class="net-item">
+                        <div class="net-info">
+                            <strong>${escHtml(s.name)}</strong> &nbsp;<small>${TASK_LABELS[s.task] || s.task}</small><br>
+                            <small>Train ${s.stats.train} · Test ${s.stats.test} · epoch ${s.stats.epoch} · ${s.fingerprint.length} weights</small>
+                            <canvas class="net-fp" data-id="${s.id}" title="Weight fingerprint — every square is one weight"></canvas>
+                        </div>
+                        <button class="hdr-btn" style="background:#2980b9" onclick="loadNetwork('${s.id}')">Load</button>
+                        <button class="hdr-btn" style="background:#c0392b" onclick="deleteNetwork('${s.id}')" title="Delete">×</button>
+                    </div>`).join('')
+                : '<p style="font-size:11px; color:#7f8c8d; text-align:center; margin:14px;">No saved networks yet — train one and hit save!</p>'}
+                </div>
+            </div>`;
+        saves.forEach(s => {
+            const cv = lib.querySelector(`canvas[data-id="${s.id}"]`);
+            if (cv && s.fingerprint) drawFingerprint(cv, s.fingerprint);
+        });
+    }
+
+    function removeCustomCard(idx) {
+        const card = currentTask.cards[idx];
+        currentTask.cards.splice(idx, 1);
+        if (lastCard === card) {
+            lastCard = null;
+            showCardInSensor(null);
+            document.getElementById('result-display').innerHTML = "Waiting for signal...";
+            document.getElementById('train-btn').disabled = true;
+        }
+        createCards();
+        evaluateAll();
+    }
+
+    /* --- Dynamic Component Creation --- */
+    function dragTool(ev, type) {
+        ev.dataTransfer.setData("toolType", type);
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+
+    function dropOnCanvas(ev) {
+        ev.preventDefault();
+        const toolType = ev.dataTransfer.getData("toolType");
+        if (!toolType) return; // Not a tool drop
+
+        const rect = canvasArea.getBoundingClientRect();
+        addComponent(toolType, (ev.clientX - rect.left - panX) / zoom, (ev.clientY - rect.top - panY) / zoom);
+    }
+
+    function addComponent(type, x, y) {
+        const id = `comp_${nextId++}`;
+        const nodeDom = createNodeDOM(id, x, y, type.charAt(0).toUpperCase() + type.slice(1));
+
+        let nodeData = {
+            id: id, dom: nodeDom, type: type,
+            weight: 1.0, bias: 0.0,
+            w: new Array(N_FEATURES).fill(1.0)
+        };
+
+        if (type === 'amplifier') {
+            // Out (Top)
+            const topDiv = document.createElement('div');
+            topDiv.className = 'ports-container';
+            topDiv.appendChild(createSocket('out', id, 0));
+            nodeDom.insertBefore(topDiv, nodeDom.firstChild);
+
+            // Controls
+            const body = document.createElement('div');
+            body.className = 'node-body';
+            body.innerHTML = `Weight: <span id="val_${id}">1.00</span><input type="range" min="-${PARAM_LIMIT}" max="${PARAM_LIMIT}" step="0.05" value="1.0" oninput="updateVal('${id}', this.value)" onmousedown="event.stopPropagation()">`;
+            nodeDom.appendChild(body);
+
+            // In (Bottom)
+            const botDiv = document.createElement('div');
+            botDiv.className = 'ports-container';
+            botDiv.appendChild(createSocket('in', id, 0));
+            nodeDom.appendChild(botDiv);
+
+        } else if (type === 'nucleus') {
+            // Out (Top)
+            const topDiv = document.createElement('div');
+            topDiv.className = 'ports-container';
+            topDiv.appendChild(createSocket('out', id, 0));
+            nodeDom.insertBefore(topDiv, nodeDom.firstChild);
+
+            // Controls
+            const body = document.createElement('div');
+            body.className = 'node-body';
+            body.innerHTML = `Bias: <span id="val_${id}">0.00</span><input type="range" min="-${PARAM_LIMIT}" max="${PARAM_LIMIT}" step="0.05" value="0.0" oninput="updateVal('${id}', this.value)" onmousedown="event.stopPropagation()">`;
+            nodeDom.appendChild(body);
+
+            // In (Bottom)
+            const botDiv = document.createElement('div');
+            botDiv.className = 'ports-container';
+            for(let i=0; i<N_FEATURES; i++) botDiv.appendChild(createSocket('in', id, i));
+            nodeDom.appendChild(botDiv);
+        } else if (type === 'neuron') {
+            // Widen the neuron component (one column per input + bias);
+            // compact columns when there are many inputs (e.g. weather's 12)
+            const colW = N_FEATURES > 6 ? 36 : 48;
+            nodeDom.style.width = (N_FEATURES * colW + 55) + 'px';
+            if (N_FEATURES > 6) nodeDom.classList.add('compact');
+
+            // Out (Top)
+            const topDiv = document.createElement('div');
+            topDiv.className = 'ports-container';
+            topDiv.appendChild(createSocket('out', id, 0));
+            nodeDom.insertBefore(topDiv, nodeDom.firstChild);
+
+            // Controls with vertical sliders
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'neuron-controls';
+
+            // Create input groups for each weight
+            for (let i = 0; i < N_FEATURES; i++) {
+                const param = `w${i}`;
+                const group = document.createElement('div');
+                group.className = 'neuron-input-group';
+
+                // Amplifier output display (W × input)
+                const ampOutput = document.createElement('div');
+                ampOutput.className = 'neuron-amplifier-output';
+                ampOutput.id = `amp_${param}_${id}`;
+                ampOutput.innerText = '0.00';
+                ampOutput.title = `W${i + 1} × ${currentTask.inputs[i]}`;
+                group.appendChild(ampOutput);
+
+                const label = document.createElement('div');
+                label.className = 'neuron-slider-label';
+                label.innerText = `W${i + 1}`;
+                group.appendChild(label);
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.className = 'vertical-slider';
+                slider.dataset.param = param;
+                slider.dataset.nodeId = id;
+                slider.min = `-${PARAM_LIMIT}`;
+                slider.max = `${PARAM_LIMIT}`;
+                slider.step = '0.05';
+                slider.value = '1.0';
+                slider.oninput = (e) => {
+                    e.stopPropagation();
+                    updateNeuronParam(id, param, slider.value);
+                };
+                slider.onmousedown = (e) => e.stopPropagation();
+                group.appendChild(slider);
+
+                const valueDisplay = document.createElement('div');
+                valueDisplay.className = 'neuron-slider-value';
+                valueDisplay.id = `val_${param}_${id}`;
+                valueDisplay.innerText = '1.00';
+                group.appendChild(valueDisplay);
+
+                controlsContainer.appendChild(group);
+            }
+
+            // Bias group (on the right)
+            const biasGroup = document.createElement('div');
+            biasGroup.className = 'neuron-bias-group';
+
+            const biasLabel = document.createElement('div');
+            biasLabel.className = 'neuron-slider-label';
+            biasLabel.innerText = 'b';
+            biasGroup.appendChild(biasLabel);
+
+            const biasSlider = document.createElement('input');
+            biasSlider.type = 'range';
+            biasSlider.className = 'vertical-slider';
+            biasSlider.dataset.param = 'b';
+            biasSlider.dataset.nodeId = id;
+            biasSlider.min = `-${PARAM_LIMIT}`;
+            biasSlider.max = `${PARAM_LIMIT}`;
+            biasSlider.step = '0.05';
+            biasSlider.value = '0.0';
+            biasSlider.oninput = (e) => {
+                e.stopPropagation();
+                updateNeuronParam(id, 'b', biasSlider.value);
+            };
+            biasSlider.onmousedown = (e) => e.stopPropagation();
+            biasGroup.appendChild(biasSlider);
+
+            const biasValueDisplay = document.createElement('div');
+            biasValueDisplay.className = 'neuron-slider-value';
+            biasValueDisplay.id = `val_b_${id}`;
+            biasValueDisplay.innerText = '0.00';
+            biasGroup.appendChild(biasValueDisplay);
+
+            controlsContainer.appendChild(biasGroup);
+            nodeDom.appendChild(controlsContainer);
+
+            // In (Bottom) - input sockets aligned with the weight columns
+            const botDiv = document.createElement('div');
+            botDiv.className = 'ports-container';
+            botDiv.style.justifyContent = 'flex-start';
+            botDiv.style.paddingLeft = '5px';
+            botDiv.style.paddingRight = '5px';
+            botDiv.style.gap = '5px';
+
+            for(let i=0; i<N_FEATURES; i++) {
+                const socketWrapper = document.createElement('div');
+                socketWrapper.style.flex = '1';
+                socketWrapper.style.display = 'flex';
+                socketWrapper.style.justifyContent = 'center';
+                socketWrapper.appendChild(createSocket('in', id, i));
+                botDiv.appendChild(socketWrapper);
+            }
+
+            // Add spacer for bias column
+            const spacer = document.createElement('div');
+            spacer.style.width = '38px';
+            spacer.style.marginLeft = '5px';
+            botDiv.appendChild(spacer);
+
+            nodeDom.appendChild(botDiv);
+        }
+
+        worldEl.appendChild(nodeDom);
+        components.push(nodeData);
+        return nodeData;
+    }
+
+    function createNodeDOM(id, x, y, title) {
+        const div = document.createElement('div');
+        div.className = 'node';
+        div.id = id;
+        div.style.left = x + 'px';
+        div.style.top = y + 'px';
+
+        const header = document.createElement('div');
+        header.className = 'node-header';
+        header.innerHTML = `<span>${title}</span>`;
+
+        // Move Logic
+        header.onmousedown = (e) => startDragNode(e, div, id);
+
+        if (id !== 'in_main' && id !== 'out_main') {
+            const del = document.createElement('span');
+            del.className = 'delete-btn';
+            del.innerHTML = '×';
+            del.onclick = () => removeComponent(id);
+            header.appendChild(del);
+        }
+
+        div.appendChild(header);
+        return div;
+    }
+
+    /* --- Wiring Logic --- */
+    function createSocket(type, nodeId, portIndex) {
+        const s = document.createElement('div');
+        s.className = 'socket';
+        s.dataset.type = type;
+        s.dataset.node = nodeId;
+        s.dataset.port = portIndex;
+        s.title = type === 'out' ? "Drag to Connect" : "Drop Connection Here";
+
+        s.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation(); // Stop node dragging
+            if (type === 'out') startWireDrag(nodeId, portIndex, e);
+        };
+
+        s.onmouseup = (e) => {
+            e.stopPropagation();
+            if (draggingWire && draggingWire.type === 'in' && type === 'in') {
+                completeWire(nodeId, portIndex);
+            }
+        }
+
+        // Extended Hit Area for better UX (Jack touching socket)
+        if (type === 'in') {
+            const hitArea = document.createElement('div');
+            hitArea.style.position = 'absolute';
+            hitArea.style.top = '100%'; // Below the socket
+            hitArea.style.left = '-10px'; // Wider
+            hitArea.style.right = '-10px';
+            hitArea.style.height = '30px'; // 20px extra drop zone
+            hitArea.style.zIndex = '50';
+
+            hitArea.onmouseup = (e) => {
+                e.stopPropagation();
+                if (draggingWire && draggingWire.type === 'in') {
+                    completeWire(nodeId, portIndex);
+                }
+            };
+            s.appendChild(hitArea);
+        }
+
+        // Add signal value display for output sockets
+        if (type === 'out') {
+            const valueDisplay = document.createElement('span');
+            valueDisplay.className = 'signal-value';
+            valueDisplay.innerText = '0.00';
+            valueDisplay.dataset.node = nodeId;
+            valueDisplay.dataset.port = portIndex;
+            s.appendChild(valueDisplay);
+        }
+
+        return s;
+    }
+
+    function startWireDrag(nodeId, portIndex, e) {
+        const rect = canvasArea.getBoundingClientRect();
+        const startX = (e.clientX - rect.left - panX) / zoom;
+        const startY = (e.clientY - rect.top - panY) / zoom;
+
+        const pathBg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathBg.classList.add('wire-bg');
+        const pathFg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathFg.classList.add('wire-fg');
+
+        svgLayer.appendChild(pathBg);
+        svgLayer.appendChild(pathFg);
+
+        // Create Drag Jack Visual
+        const jack = document.createElement('div');
+        jack.className = 'drag-jack';
+        worldEl.appendChild(jack);
+
+        draggingWire = {
+            sourceNode: nodeId,
+            sourcePort: portIndex,
+            pathBg: pathBg,
+            pathFg: pathFg,
+            dragEl: jack,
+            startX: startX,
+            startY: startY,
+            type: 'in' // We are dragging an OUTPUT, looking for an INPUT
+        };
+        updateDragWire(); // Init position
+    }
+
+    function updateDragWire() {
+        if(!draggingWire) return;
+
+        // Position Jack at mouse
+        const jw = 14;
+        const jh = 24;
+        const jackX = mousePos.x - jw/2;
+        const jackY = mousePos.y - jh/2;
+
+        draggingWire.dragEl.style.left = jackX + 'px';
+        draggingWire.dragEl.style.top = jackY + 'px';
+
+        // Bezier curve
+        const p1x = draggingWire.startX;
+        const p1y = draggingWire.startY;
+
+        // Wire goes to bottom of Jack
+        const p2x = mousePos.x;
+        const p2y = jackY + jh;
+
+        const cp1y = p1y - 50;
+        const cp2y = p2y + 50; // Wire hangs down from jack
+
+        const d = `M ${p1x} ${p1y} C ${p1x} ${cp1y}, ${p2x} ${cp2y}, ${p2x} ${p2y}`;
+        draggingWire.pathBg.setAttribute('d', d);
+        draggingWire.pathFg.setAttribute('d', d);
+    }
+
+    function endWireDrag() {
+        if (draggingWire) {
+            draggingWire.pathBg.remove();
+            draggingWire.pathFg.remove();
+            if(draggingWire.dragEl) draggingWire.dragEl.remove();
+            draggingWire = null;
+        }
+    }
+
+    function completeWire(targetNode, targetPort) {
+        // Remove any existing connection to this input port (Single input constraint)
+        const previousConnIndex = connections.findIndex(c => c.to === targetNode && c.toPort == targetPort);
+        if (previousConnIndex !== -1) {
+             connections.splice(previousConnIndex, 1);
+        }
+
+        connections.push({
+            id: 'wire_' + (nextWireId++),
+            from: draggingWire.sourceNode,
+            fromPort: draggingWire.sourcePort,
+            to: targetNode,
+            toPort: targetPort,
+            value: 0
+        });
+        renderConnections();
+
+        // TRIGGER LIVE UPDATE
+        if (lastCard) runSimulation(lastCard);
+        evaluateAll();
+
+        endWireDrag();
+    }
+
+    function renderConnections() {
+        svgLayer.innerHTML = '';
+        connections.forEach(c => {
+            const p1 = getSocketPos(c.from, c.fromPort, 'out');
+            const p2 = getSocketPos(c.to, c.toPort, 'in');
+
+            if (!p1 || !p2) return;
+
+            // Curve: Out goes UP (-50), In comes from DOWN (+50)
+            const pathStr = `M ${p1.x} ${p1.y} C ${p1.x} ${p1.y - 60}, ${p2.x} ${p2.y + 60}, ${p2.x} ${p2.y}`;
+
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            bg.setAttribute('d', pathStr);
+            bg.classList.add('wire-bg');
+
+            const fg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            fg.setAttribute('d', pathStr);
+            fg.classList.add('wire-fg');
+
+            // Color Logic: White (0) -> Blue (1)
+            const intensity = Math.min(Math.max(c.value, 0), 1);
+            const r = Math.floor(255 * (1 - intensity));
+            const g = Math.floor(255 * (1 - intensity));
+            fg.style.stroke = `rgb(${r}, ${g}, 255)`;
+
+            // Click to delete
+            bg.style.pointerEvents = 'auto';
+            bg.style.cursor = 'pointer';
+            bg.onclick = (e) => {
+                if(e.shiftKey || confirm("Delete connection?")) {
+                    connections = connections.filter(x => x.id !== c.id);
+                    renderConnections();
+
+                    // TRIGGER LIVE UPDATE
+                    if (lastCard) runSimulation(lastCard);
+                    evaluateAll();
+                }
+            };
+
+            svgLayer.appendChild(bg);
+            svgLayer.appendChild(fg);
+        });
+    }
+
+    function getSocketPos(nodeId, portIndex, type) {
+        const node = document.getElementById(nodeId);
+        if (!node) return null;
+
+        const sock = node.querySelector(`.socket[data-type="${type}"][data-port="${portIndex}"]`);
+        if (!sock) return null;
+
+        const rect = sock.getBoundingClientRect();
+        const canvasRect = canvasArea.getBoundingClientRect();
+
+        // Screen px → world units (the SVG lives inside the scaled world)
+        return {
+            x: (rect.left + rect.width/2 - canvasRect.left - panX) / zoom,
+            y: (rect.top + rect.height/2 - canvasRect.top - panY) / zoom
+        };
+    }
+
+    /* =====================================================
+       Neural network math
+       -----------------------------------------------------
+       computeForward(): pure forward pass over the wire
+       graph. Returns wire values, class scores and softmax
+       probabilities without touching the DOM, so it can be
+       used both for display and for evaluating the whole
+       dataset cheaply.
+       ===================================================== */
+
+    function clampParam(v) {
+        return Math.max(-PARAM_LIMIT, Math.min(PARAM_LIMIT, v));
+    }
+
+    function computeForward(features) {
+        const vals = {};
+        connections.forEach(c => {
+            vals[c.id] = c.from === 'in_main' ? (features[c.fromPort] || 0) : 0;
+        });
+
+        // Relaxation passes so signals can cross several layers
+        for (let pass = 0; pass < 8; pass++) {
+            components.forEach(comp => {
+                if (comp.type === 'input' || comp.type === 'output') return;
+
+                const inputWires = connections.filter(c => c.to === comp.id);
+                let out = 0;
+
+                if (comp.type === 'amplifier') {
+                    const w = inputWires.find(x => x.toPort == 0);
+                    comp._pre = w ? vals[w.id] : 0;
+                    out = comp._pre * comp.weight;
+                }
+                else if (comp.type === 'nucleus') {
+                    let sum = comp.bias;
+                    inputWires.forEach(w => sum += vals[w.id]);
+                    comp._pre = sum;
+                    out = Math.max(0, sum);
+                }
+                else if (comp.type === 'neuron') {
+                    let sum = comp.bias;
+                    inputWires.forEach(w => sum += comp.w[w.toPort] * vals[w.id]);
+                    comp._pre = sum;
+                    out = Math.max(0, sum);
+                }
+
+                connections.filter(c => c.from === comp.id).forEach(c => vals[c.id] = out);
+            });
+        }
+
+        const scores = new Array(currentTask.outputs.length).fill(0);
+        connections.filter(c => c.to === 'out_main').forEach(w => {
+            if (w.toPort < scores.length) scores[w.toPort] = vals[w.id];
+        });
+
+        // Softmax (with max subtraction for numerical stability)
+        const maxScore = Math.max(...scores);
+        const expScores = scores.map(s => Math.exp(s - maxScore));
+        const sumExp = expScores.reduce((a, b) => a + b, 0);
+        const softmax = expScores.map(e => e / sumExp);
+
+        return { vals, scores, softmax };
+    }
+
+    function argmax(arr) {
+        let idx = 0;
+        arr.forEach((v, i) => { if (v > arr[idx]) idx = i; });
+        return idx;
+    }
+
+    /* Backpropagation: compute gradients with weights FROZEN,
+       then apply a single gradient-descent update at the end. */
+    function trainOnCard(card) {
+        const fw = computeForward(card.features);
+
+        let outputGrads;
+        if (currentTask.kind === 'predict') {
+            // dLoss/dPrediction for ½·(prediction − target)²
+            outputGrads = [fw.scores[0] - card.target];
+        } else {
+            const correctIdx = currentTask.outputs.indexOf(card.type);
+            if (correctIdx < 0) return;
+            // dLoss/dScore for softmax + cross-entropy
+            outputGrads = fw.softmax.map((sm, i) => sm - (i === correctIdx ? 1 : 0));
+        }
+
+        // Wire gradients: each wire's grad is set (not accumulated) by the
+        // component it feeds; relaxation passes push grads down the graph.
+        const g = {};
+        connections.forEach(c => g[c.id] = 0);
+        connections.filter(c => c.to === 'out_main').forEach(w => {
+            if (w.toPort < outputGrads.length) g[w.id] = outputGrads[w.toPort];
+        });
+
+        for (let pass = 0; pass < 8; pass++) {
+            components.forEach(comp => {
+                if (comp.type === 'input' || comp.type === 'output') return;
+
+                const outGrad = connections.filter(c => c.from === comp.id)
+                                           .reduce((acc, c) => acc + g[c.id], 0);
+                const inputWires = connections.filter(c => c.to === comp.id);
+
+                if (comp.type === 'amplifier') {
+                    inputWires.forEach(w => { if (w.toPort == 0) g[w.id] = outGrad * comp.weight; });
+                }
+                else if (comp.type === 'nucleus') {
+                    const d = comp._pre > 0 ? outGrad : 0; // ReLU derivative
+                    inputWires.forEach(w => g[w.id] = d);
+                }
+                else if (comp.type === 'neuron') {
+                    const d = comp._pre > 0 ? outGrad : 0; // ReLU derivative
+                    inputWires.forEach(w => g[w.id] = d * comp.w[w.toPort]);
+                }
+            });
+        }
+
+        // Apply parameter updates ONCE, using the frozen forward values
+        components.forEach(comp => {
+            if (comp.type === 'input' || comp.type === 'output') return;
+
+            const outGrad = connections.filter(c => c.from === comp.id)
+                                       .reduce((acc, c) => acc + g[c.id], 0);
+            const inputWires = connections.filter(c => c.to === comp.id);
+
+            if (comp.type === 'amplifier') {
+                const w0 = inputWires.find(x => x.toPort == 0);
+                const inVal = w0 ? fw.vals[w0.id] : 0;
+                comp.weight = clampParam(comp.weight - learningRate * outGrad * inVal);
+            }
+            else if (comp.type === 'nucleus') {
+                const d = comp._pre > 0 ? outGrad : 0;
+                comp.bias = clampParam(comp.bias - learningRate * d);
+            }
+            else if (comp.type === 'neuron') {
+                const d = comp._pre > 0 ? outGrad : 0;
+                inputWires.forEach(w => {
+                    comp.w[w.toPort] = clampParam(comp.w[w.toPort] - learningRate * d * fw.vals[w.id]);
+                });
+                comp.bias = clampParam(comp.bias - learningRate * d);
+            }
+        });
+    }
+
+    /* --- Display / Simulation --- */
+
+    function runSimulation(card) {
+        const fw = computeForward(card.features);
+        connections.forEach(c => c.value = fw.vals[c.id] || 0);
+
+        // Update output displays
+        const isPredict = currentTask.kind === 'predict';
+        fw.scores.forEach((score, idx) => {
+            const softmaxEl = document.getElementById(`softmax_${idx}`);
+            const rawEl = document.getElementById(`raw_${idx}`);
+            if (softmaxEl) softmaxEl.innerText = isPredict
+                ? currentTask.format(score)
+                : `${(fw.softmax[idx] * 100).toFixed(1)}%`;
+            if (rawEl) rawEl.innerText = `(${score.toFixed(2)})`;
+        });
+
+        renderConnections();
+        updateSignalValues();
+
+        const display = document.getElementById('result-display');
+        const hasSignal = connections.some(c => c.to === 'out_main');
+
+        if (!hasSignal) {
+            display.innerHTML = '<span style="color:#7f8c8d">Waiting for signal... wire something into the outputs!</span>';
+            return fw;
+        }
+
+        if (isPredict) {
+            const pred = fw.scores[0];
+            const err = pred - card.target;
+            const loss = 0.5 * err * err;
+            const onTarget = Math.abs(err) <= currentTask.tolerance;
+            display.innerHTML = onTarget
+                ? `<span style="color:#27ae60; font-size:18px">✓ ${currentTask.format(pred)}</span><br><small>Actual: ${currentTask.format(card.target)} | Loss: ${loss.toFixed(4)}</small>`
+                : `<span style="color:#c0392b; font-size:18px">✗ ${currentTask.format(pred)}</span><br><small>Actual: ${currentTask.format(card.target)} | Loss: ${loss.toFixed(4)}</small>`;
+            return fw;
+        }
+
+        const maxIdx = argmax(fw.softmax);
+        const predicted = currentTask.outputs[maxIdx];
+        const isCorrect = predicted === card.type;
+
+        const correctIdx = currentTask.outputs.indexOf(card.type);
+        const loss = -Math.log(Math.max(fw.softmax[correctIdx], 1e-9));
+
+        display.innerHTML = isCorrect
+            ? `<span style="color:#27ae60; font-size:18px">✓ ${predicted}</span><br><small>Confidence: ${(fw.softmax[maxIdx] * 100).toFixed(1)}% | Loss: ${loss.toFixed(3)}</small>`
+            : `<span style="color:#c0392b; font-size:18px">✗ ${predicted}</span><br><small>Expected: ${card.type} | Loss: ${loss.toFixed(3)}</small>`;
+
+        return fw;
+    }
+
+    function updateSignalValues() {
+        // Update all output socket signal displays
+        document.querySelectorAll('.signal-value').forEach(display => {
+            const nodeId = display.dataset.node;
+            const portIndex = parseInt(display.dataset.port);
+
+            const outConn = connections.find(c => c.from === nodeId && c.fromPort == portIndex);
+            const value = outConn ? outConn.value : 0;
+
+            display.innerText = value.toFixed(2);
+        });
+
+        // Update neuron amplifier outputs (W_i × input_i)
+        components.forEach(comp => {
+            if (comp.type === 'neuron') {
+                const inputWires = connections.filter(c => c.to === comp.id);
+
+                comp.w.forEach((weight, i) => {
+                    const inputWire = inputWires.find(w => w.toPort == i);
+                    const inputValue = inputWire ? inputWire.value : 0;
+
+                    const ampDisplay = document.getElementById(`amp_w${i}_${comp.id}`);
+                    if (ampDisplay) {
+                        ampDisplay.innerText = (weight * inputValue).toFixed(2);
+                    }
+                });
+            }
+        });
+    }
+
+    /* --- Dataset evaluation, stats & chart --- */
+
+    function evaluateAll() {
+        const hasSignal = connections.some(c => c.to === 'out_main');
+        let correct = 0, total = 0, testCorrect = 0, testTotal = 0, trainLoss = 0;
+
+        currentTask.cards.forEach((card, idx) => {
+            const el = document.getElementById(`card_${idx}`);
+            const st = document.getElementById(`cardstat_${idx}`);
+            if (!hasSignal) {
+                if (el) { el.classList.remove('correct', 'wrong'); el.title = ''; }
+                if (st) st.innerText = '';
+                return;
+            }
+
+            const fw = computeForward(card.features);
+            let ok, loss, title;
+
+            if (currentTask.kind === 'predict') {
+                const pred = fw.scores[0];
+                const err = pred - card.target;
+                ok = Math.abs(err) <= currentTask.tolerance;
+                loss = 0.5 * err * err;
+                title = `Network predicts: ${currentTask.format(pred)} — actual: ${currentTask.format(card.target)}`;
+            } else {
+                const y = currentTask.outputs.indexOf(card.type);
+                const pred = argmax(fw.softmax);
+                ok = pred === y;
+                loss = -Math.log(Math.max(fw.softmax[y], 1e-9));
+                title = `Network says: ${currentTask.outputs[pred]} (${(fw.softmax[pred] * 100).toFixed(0)}%) — actual: ${card.type}`;
+            }
+            if (card.test) {
+                testTotal++;
+                if (ok) testCorrect++;
+            } else {
+                total++;
+                trainLoss += loss;
+                if (ok) correct++;
+            }
+
+            if (el) {
+                el.classList.toggle('correct', ok);
+                el.classList.toggle('wrong', !ok);
+                el.title = title;
+            }
+            if (st) {
+                st.innerText = ok ? '✓' : '✗';
+                st.style.color = ok ? '#27ae60' : '#e74c3c';
+            }
+        });
+
+        document.getElementById('epoch-num').innerText = epoch;
+        const avg = total ? trainLoss / total : 0;
+        document.getElementById('avg-loss').innerText = !hasSignal ? '—'
+            : (avg > 0 && avg < 0.001) ? avg.toExponential(1)
+            : avg.toFixed(currentTask.kind === 'predict' ? 4 : 3);
+        document.getElementById('acc-display').innerText = hasSignal ? `${correct}/${total}` : '—';
+        document.getElementById('test-display').innerText = hasSignal && testTotal ? `${testCorrect}/${testTotal}` : '—';
+
+        return { correct, total, testCorrect, testTotal, avgLoss: avg, hasSignal };
+    }
+
+    function drawChart() {
+        const cv = document.getElementById('loss-chart');
+        const ctx = cv.getContext('2d');
+        ctx.clearRect(0, 0, cv.width, cv.height);
+
+        if (lossHistory.length < 2) {
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = '10px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText('Train to see the loss curve', cv.width / 2, cv.height / 2);
+            return;
+        }
+
+        const maxLoss = Math.max(...lossHistory.map(h => h.loss), 0.01);
+        const n = lossHistory.length;
+        const px = (i) => (i / (n - 1)) * (cv.width - 8) + 4;
+
+        // Train accuracy line (green, scale 0..1)
+        ctx.beginPath();
+        ctx.strokeStyle = '#2ecc71';
+        ctx.lineWidth = 1.5;
+        lossHistory.forEach((h, i) => {
+            const y = cv.height - 4 - h.acc * (cv.height - 8);
+            i === 0 ? ctx.moveTo(px(i), y) : ctx.lineTo(px(i), y);
+        });
+        ctx.stroke();
+
+        // Test accuracy line (yellow) — generalization to held-out cards
+        if (lossHistory.some(h => h.testAcc !== null && h.testAcc !== undefined)) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 1.5;
+            lossHistory.forEach((h, i) => {
+                const y = cv.height - 4 - (h.testAcc || 0) * (cv.height - 8);
+                i === 0 ? ctx.moveTo(px(i), y) : ctx.lineTo(px(i), y);
+            });
+            ctx.stroke();
+        }
+
+        // Loss line (red, scaled to max loss seen)
+        ctx.beginPath();
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 1.5;
+        lossHistory.forEach((h, i) => {
+            const y = cv.height - 4 - (h.loss / maxLoss) * (cv.height - 8);
+            i === 0 ? ctx.moveTo(px(i), y) : ctx.lineTo(px(i), y);
+        });
+        ctx.stroke();
+    }
+
+    /* --- Training controls --- */
+
+    function updateVal(id, val) {
+        document.getElementById('val_'+id).innerText = parseFloat(val).toFixed(2);
+
+        const comp = components.find(c => c.id === id);
+        if (comp.type === 'amplifier') comp.weight = parseFloat(val);
+        if (comp.type === 'nucleus') comp.bias = parseFloat(val);
+
+        if (lastCard) runSimulation(lastCard);
+        evaluateAll();
+    }
+
+    function updateNeuronParam(id, param, val) {
+        document.getElementById(`val_${param}_${id}`).innerText = parseFloat(val).toFixed(2);
+
+        const comp = components.find(c => c.id === id);
+        if (comp && comp.type === 'neuron') {
+            if (param === 'b') comp.bias = parseFloat(val);
+            else comp.w[parseInt(param.slice(1))] = parseFloat(val);
+        }
+
+        if (lastCard) runSimulation(lastCard);
+        evaluateAll();
+    }
+
+    function updateLearningRate(logValue) {
+        learningRate = Math.pow(10, parseFloat(logValue));
+        if (learningRate < 0.001) {
+            document.getElementById('lr-display').innerText = learningRate.toExponential(1);
+        } else {
+            document.getElementById('lr-display').innerText = learningRate.toFixed(3);
+        }
+    }
+
+    function syncAllSliders() {
+        components.forEach(comp => {
+            if (comp.type === 'neuron') {
+                comp.w.forEach((wv, i) => {
+                    const slider = document.querySelector(`input[data-node-id="${comp.id}"][data-param="w${i}"]`);
+                    if (slider) slider.value = wv;
+                    const disp = document.getElementById(`val_w${i}_${comp.id}`);
+                    if (disp) disp.innerText = wv.toFixed(2);
+                });
+                const bSlider = document.querySelector(`input[data-node-id="${comp.id}"][data-param="b"]`);
+                if (bSlider) bSlider.value = comp.bias;
+                const bDisp = document.getElementById(`val_b_${comp.id}`);
+                if (bDisp) bDisp.innerText = comp.bias.toFixed(2);
+            }
+            else if (comp.type === 'amplifier' || comp.type === 'nucleus') {
+                const slider = document.querySelector(`#${comp.id} input`);
+                if (slider) slider.value = comp.type === 'amplifier' ? comp.weight : comp.bias;
+                const disp = document.getElementById(`val_${comp.id}`);
+                if (disp) disp.innerText = (comp.type === 'amplifier' ? comp.weight : comp.bias).toFixed(2);
+            }
+        });
+    }
+
+    // One gradient step on the currently loaded card
+    function trainStep() {
+        if (!lastCard) {
+            alert("Load a card first!");
+            return;
+        }
+        if (lastCard.test) {
+            alert("🙅 That's a TEST card — it's held out to check the network fairly.\nTraining on it would be cheating!");
+            return;
+        }
+        trainOnCard(lastCard);
+        syncAllSliders();
+        runSimulation(lastCard);
+        evaluateAll();
+    }
+
+    // Which deck card the training display is currently showcasing
+    let trainViewIdx = -1;
+
+    // One full epoch: a gradient step on every TRAINING card, in random order.
+    // Test cards are held out — the network never trains on them.
+    function trainEpoch() {
+        const order = currentTask.cards.map((_, i) => i)
+                                       .filter(i => !currentTask.cards[i].test);
+        for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [order[i], order[j]] = [order[j], order[i]];
+        }
+        order.forEach(i => trainOnCard(currentTask.cards[i]));
+
+        epoch++;
+        syncAllSliders();
+
+        // Show the training data flowing: each epoch showcases the next training
+        // card — its features in the sensor, the net's current answer on top
+        if (order.length) {
+            let guard = currentTask.cards.length;
+            do {
+                trainViewIdx = (trainViewIdx + 1) % currentTask.cards.length;
+            } while (currentTask.cards[trainViewIdx].test && --guard > 0);
+            lastCard = currentTask.cards[trainViewIdx];
+            showCardInSensor(lastCard);
+            runSimulation(lastCard);
+            document.getElementById('train-btn').disabled = false;
+        }
+        const ev = evaluateAll();
+        lossHistory.push({ loss: ev.avgLoss, acc: ev.correct / ev.total,
+                           testAcc: ev.testTotal ? ev.testCorrect / ev.testTotal : null });
+        drawChart();
+
+        // Learning-rate decay: 1% per epoch, floored (default 10^-4, tasks may override)
+        const lrFloor = currentTask.lrFloor || 0.0001;
+        if (learningRate > lrFloor) {
+            learningRate = Math.max(lrFloor, learningRate * 0.99);
+            const logValue = Math.log10(learningRate);
+            document.getElementById('lr-slider').value = logValue;
+            updateLearningRate(logValue);
+        }
+        return ev;
+    }
+
+    function networkReady() {
+        if (!connections.some(c => c.to === 'out_main')) {
+            alert("The network isn't wired to the outputs yet.\nBuild one, or press ⚡ Auto-Build Network!");
+            return false;
+        }
+        return true;
+    }
+
+    function trainEpochClick() {
+        if (!networkReady()) return;
+        trainEpoch();
+    }
+
+    function toggleAutoTrain() {
+        const btn = document.getElementById('auto-btn');
+        if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+            btn.innerHTML = '&#9654; Auto-Train';
+            btn.style.background = '#8e44ad';
+            return;
+        }
+        if (!networkReady()) return;
+
+        btn.innerHTML = '&#9632; Stop';
+        btn.style.background = '#c0392b';
+        let bestCorrect = -1, bestLoss = Infinity, staleEpochs = 0, polishEpochs = 0;
+        autoTimer = setInterval(() => {
+            let ev;
+            const perTick = currentTask.epochsPerTick || 1;
+            for (let i = 0; i < perTick; i++) ev = trainEpoch();
+            // Tasks with stopLoss keep refining past "all within tolerance" so
+            // unseen inputs (user-composed weather) predict well too
+            const trainSolved = ev.correct === ev.total
+                && (currentTask.stopLoss === undefined || ev.avgLoss < currentTask.stopLoss);
+            if (trainSolved) {
+                // The stopping rule uses ONLY the training set — peeking at the
+                // test score to decide when to stop would be cheating (the test
+                // set must measure the network, never steer it). After the
+                // training set is solved, polish a FIXED number of epochs to
+                // shrink the training loss further, then stop.
+                const polishTarget = currentTask.stopLoss !== undefined ? 0 : 60;
+                if (polishEpochs < polishTarget) {
+                    polishEpochs += perTick;
+                    return;
+                }
+                toggleAutoTrain(); // stop
+                const testMsg = ev.testTotal
+                    ? (ev.testCorrect === ev.testTotal
+                        ? ` Test set: <strong>${ev.testCorrect}/${ev.testTotal}</strong> — it generalizes to cards it never saw! 🧠`
+                        : ` Test set: <strong>${ev.testCorrect}/${ev.testTotal}</strong> — not everything unseen. Train more epochs or rebuild & retrain.`)
+                    : '';
+                document.getElementById('mission-text').innerHTML =
+                    '🎉 <strong>Training set mastered!</strong>' + testMsg +
+                    ' 💾 Save it in 🧠 Networks — different weights can score the same!';
+                return;
+            }
+            // Stuck detection: no progress at all for ~300 epochs means an
+            // unlucky init (e.g. dead ReLUs) — a fresh build fixes it
+            if (ev.correct > bestCorrect || ev.avgLoss < bestLoss * 0.999) {
+                bestCorrect = Math.max(bestCorrect, ev.correct);
+                bestLoss = Math.min(bestLoss, ev.avgLoss);
+                staleEpochs = 0;
+            } else {
+                staleEpochs += perTick;
+            }
+            if (staleEpochs >= 300) {
+                toggleAutoTrain(); // stop
+                document.getElementById('mission-text').innerHTML =
+                    '😅 Training is stuck — unlucky random start. Hit <strong>⚡ Auto-Build</strong> for a fresh init and train again!';
+            }
+        }, 120);
+    }
+
+    /* --- Auto-Build: wire up a ready-made network (1 or 2 layers) --- */
+    function autoBuild() { buildNetwork(1); }
+    function autoBuildDeep() { buildNetwork(2); }
+
+    function buildNetwork(layers) {
+        if (components.some(c => c.type !== 'input' && c.type !== 'output')) {
+            if (!confirm("Replace the current components with a fresh network?")) return;
+        }
+
+        // Clear dynamic components & wires
+        components.filter(c => c.id !== 'in_main' && c.id !== 'out_main')
+                  .forEach(c => c.dom.remove());
+        components = components.filter(c => c.id === 'in_main' || c.id === 'out_main');
+        connections = [];
+
+        const isPredict = currentTask.kind === 'predict';
+        const nOut = currentTask.outputs.length;
+        const canvasW = worldW();
+        const nodeW = N_FEATURES * (N_FEATURES > 6 ? 36 : 48) + 55; // matches addComponent
+        const gap = 14, rowH = 175;
+        const colsFor = n => Math.max(1, Math.min(n, Math.floor((canvasW - 40) / (nodeW + gap))));
+        const rowsFor = n => Math.ceil(n / colsFor(n));
+
+        const wire = (from, fromPort, to, toPort) => connections.push({
+            id: 'wire_' + (nextWireId++), from, fromPort, to, toPort, value: 0
+        });
+
+        // Place `count` neurons in centered rows starting at startY
+        const placeLayer = (count, startY, initFn) => {
+            const cols = colsFor(count);
+            const comps = [];
+            for (let j = 0; j < count; j++) {
+                const row = Math.floor(j / cols);
+                const colsInRow = Math.min(cols, count - row * cols);
+                const rowWidth = colsInRow * nodeW + (colsInRow - 1) * gap;
+                const x = (canvasW - rowWidth) / 2 + (j % cols) * (nodeW + gap);
+                const comp = addComponent('neuron', x, startY + row * rowH);
+                initFn(comp, j);
+                comps.push(comp);
+            }
+            return comps;
+        };
+
+        /* Init recipes — all verified by simulation to train reliably:
+           - classify output: random ±0.5 breaks symmetry, bias +1 keeps ReLU alive
+           - predict neurons: small POSITIVE weights (mixed signs on many
+             correlated inputs can kill the ReLU with zero gradient forever)
+           - classify hidden (deep): near-identity + noise, so the net starts
+             as "pass the features through" and refines from there */
+        const outInit = (comp) => {
+            if (isPredict) {
+                comp.w = comp.w.map(() => Math.round(Math.random() * 15) / 100);
+                comp.bias = 0.2;
+            } else {
+                // Many inputs → smaller random init, or early steps overshoot
+                // and kill ReLUs (verified: ±0.5 fails some seeds at 12 inputs)
+                const scale = N_FEATURES > 6 ? 10 : 20;
+                comp.w = comp.w.map(() => Math.round((Math.random() - 0.5) * scale) / 20);
+                comp.bias = 1.0;
+            }
+        };
+        const deepOutInit = (comp) => {
+            if (isPredict) {
+                comp.w = comp.w.map(() => 0.2 + Math.round(Math.random() * 30) / 100);
+                comp.bias = 0.1;
+            } else {
+                outInit(comp);
+            }
+        };
+        const hiddenInit = (comp, j) => {
+            if (currentTask.deepHidden) {
+                currentTask.deepHidden.init(comp, j); // task-specific recipe
+            } else if (isPredict) {
+                comp.w = comp.w.map(() => Math.round(Math.random() * 15) / 100);
+                comp.bias = 0.2;
+            } else {
+                comp.w = comp.w.map((_, i) =>
+                    Math.round(((i === j ? 1 : 0) + (Math.random() - 0.5) * 0.4) * 100) / 100);
+                comp.bias = 0.1;
+            }
+        };
+
+        if (layers === 1) {
+            const startY = worldH() / 2 - (rowsFor(nOut) * rowH) / 2 + 10;
+            placeLayer(nOut, startY, outInit).forEach((comp, j) => {
+                for (let i = 0; i < N_FEATURES; i++) wire('in_main', i, comp.id, i);
+                wire(comp.id, 0, 'out_main', j);
+            });
+        } else {
+            // input → hidden layer → output layer (signal flows bottom-up).
+            // Prediction needs only 2 hidden neurons (verified: 20/20 seeds,
+            // ~100% generalization) and they fit one row even at 12 inputs.
+            // Tasks may declare their own hidden-layer recipe (e.g. Movies).
+            const nHidden = currentTask.deepHidden ? currentTask.deepHidden.count
+                          : (isPredict ? 2 : N_FEATURES);
+            const outY = 150;
+            const hidY = outY + rowsFor(nOut) * rowH + 30;
+
+            const outLayer = placeLayer(nOut, outY, deepOutInit);
+            const hidLayer = placeLayer(nHidden, hidY, hiddenInit);
+
+            hidLayer.forEach(h => {
+                for (let i = 0; i < N_FEATURES; i++) wire('in_main', i, h.id, i);
+            });
+            outLayer.forEach((o, k) => {
+                hidLayer.forEach((h, j) => wire(h.id, 0, o.id, j));
+                wire(o.id, 0, 'out_main', k);
+            });
+        }
+
+        // Fresh network → fresh training run: restore the task's learning rate
+        // (otherwise a decayed LR from an earlier run cripples retraining)
+        const lrLog = currentTask.lrLog !== undefined ? currentTask.lrLog : -1;
+        document.getElementById('lr-slider').value = lrLog;
+        updateLearningRate(lrLog);
+
+        syncAllSliders();
+        renderConnections();
+        zoomToFit();
+        if (lastCard) runSimulation(lastCard);
+        evaluateAll();
+        document.getElementById('mission-text').innerText = layers === 2
+            ? '2-layer network built: inputs → hidden layer → output layer. Hit ▶ Auto-Train!'
+            : (isPredict
+                ? 'Network built: one neuron predicting a number. Hit ▶ Auto-Train and watch it learn!'
+                : 'Network built: one neuron per class. Now hit ▶ Auto-Train and watch it learn!');
+    }
+
+    /* =====================================================
+       Tutorial mode: from a bare signal to a deep network.
+       Each step names its dataset, explains one idea, and
+       gates "Next" on a hands-on objective.
+       ===================================================== */
+    const TUTORIAL_STEPS = [
+        {
+            title: "Welcome to the AI Lab",
+            task: 'TUT_HOT',
+            text: `This lab builds <strong>neural networks</strong> — machines that learn from examples.<br><br>
+                   Data comes on <strong>cards</strong>. Each card has numbers (features) and the right answer.<br><br>
+                   👉 Click the <strong>🎴 button</strong> (bottom right) and pick any card. Its temperature flows into the <strong>Input Sensor</strong> at the bottom.`,
+            objective: "Load a card from the deck",
+            check: () => !!lastCard
+        },
+        {
+            title: "Signals flow through wires",
+            task: 'TUT_HOT',
+            text: `The <strong>Output Logic</strong> (top) makes the decision: whichever output gets the strongest signal wins.<br><br>
+                   👉 Drag a wire from the orange <strong>Temperature</strong> socket up to the green <strong>Warm</strong> socket. Then load 🔥 Fire and 🧊 Ice Cube and watch the percentages.`,
+            objective: "Wire Temperature → Warm, with a card loaded",
+            check: () => !!lastCard && connections.some(c =>
+                c.from === 'in_main' && c.to === 'out_main' && c.toPort === 1)
+        },
+        {
+            title: "The Amplifier = a weight",
+            task: 'TUT_HOT',
+            text: `A bare wire copies the signal. An <strong>Amplifier</strong> multiplies it by a <strong>weight</strong> — the network's most important knob.<br><br>
+                   👉 Drag an <strong>Amplifier</strong> onto the canvas. Wire Temperature → Amplifier → Warm (this replaces your old wire). Now crank the weight up and load 🔥 Fire.`,
+            objective: "Fire scores ≥ 90% Warm (big weight!)",
+            check: () => components.some(c => c.type === 'amplifier')
+                && computeForward([1.0]).softmax[1] >= 0.9
+        },
+        {
+            title: "The Nucleus = bias + ReLU",
+            task: 'TUT_HOT',
+            text: `Problem: now even 🧊 Ice Cube looks a bit Warm — every temperature gives a positive signal!<br><br>
+                   A <strong>Nucleus</strong> adds a <strong>bias</strong> (a threshold) and only fires if the total is above zero (that's <strong>ReLU</strong>).<br><br>
+                   👉 Add a Nucleus: Temperature → Amplifier → Nucleus → Warm. Set the weight high (≈3) and the bias negative (≈−1.5) so cold cards score 0.`,
+            objective: "All 6 training cards correct (Train 6/6)",
+            check: () => { const ev = evaluateAll(); return ev.hasSignal && ev.correct === ev.total; }
+        },
+        {
+            title: "The Neuron = all-in-one",
+            task: 'TUT_RAIN',
+            text: `A <strong>Neuron</strong> is amplifiers + nucleus in a single box: <em>ReLU(W·inputs + b)</em>.<br><br>
+                   New mission: detect rain from <strong>two</strong> features. 👉 Drop a <strong>Neuron</strong>, wire Clouds and Humidity into it, and its output to <strong>Rain</strong>.<br><br>
+                   You could tune the sliders by hand… but let the machine do it: load a card and press <strong>Train Card</strong>, or just <strong>Train Epoch</strong> a few times — that's <strong>gradient descent</strong>. Watch the sliders move!`,
+            objective: "Rain Detector: Train 8/8",
+            check: () => { const ev = evaluateAll(); return ev.hasSignal && ev.correct === ev.total
+                && components.some(c => c.type === 'neuron'); }
+        },
+        {
+            title: "A full layer of neurons",
+            task: 'FRUIT',
+            text: `Real tasks have many answers — Fruits has 6 classes, so we need <strong>one neuron per class</strong>, all sharing the same inputs. That's a <strong>layer</strong>.<br><br>
+                   👉 Press <strong>⚡ Auto-Build Network</strong>, then <strong>▶ Auto-Train</strong>. Watch the loss fall, the accuracy climb — and check the yellow <strong>test line</strong>: those cards are never trained on!`,
+            objective: "Fruits: Train 17/17",
+            check: () => { const ev = evaluateAll(); return ev.hasSignal && ev.correct === ev.total; }
+        },
+        {
+            title: "Going deep: 2 layers",
+            task: 'FRUIT',
+            text: `Networks get their real power from <strong>stacking layers</strong>: a hidden layer transforms the features, the output layer decides.<br><br>
+                   👉 Press <strong>⚡ Deep Network (2 Layers)</strong>, then <strong>▶ Auto-Train</strong>. If training gets stuck — that happens with deep nets! — just rebuild for a fresh random start.`,
+            objective: "Deep network (10 neurons) at Train 17/17",
+            check: () => { const ev = evaluateAll();
+                return components.filter(c => c.type === 'neuron').length >= 10
+                    && ev.hasSignal && ev.correct === ev.total; }
+        },
+        {
+            title: "You're an AI engineer! 🎓",
+            task: null,
+            text: `You've built everything a real neural network is made of: <strong>weights → bias & ReLU → neurons → layers → depth</strong>.<br><br>
+                   Now explore:<br>
+                   🎬 <strong>Movie Night</strong> — a recommender: pick 3 movies, get a match.<br>
+                   🌦️ <strong>Weather</strong> — predict tomorrow's temperature.<br>
+                   ➕ <strong>Make your own cards</strong> (in the deck) to test or fool the network.<br>
+                   🧠 <strong>Save networks</strong> and compare their fingerprints — different weights, same score!`,
+            objective: null,
+            check: null
+        }
+    ];
+
+    let tutStep = -1;
+    let tutTimer = null;
+
+    function startTutorial() {
+        tutStep = 0;
+        document.getElementById('tutorial-panel').style.display = 'block';
+        if (!tutTimer) tutTimer = setInterval(updateTutorialCheck, 700);
+        enterTutStep();
+    }
+
+    function enterTutStep() {
+        const s = TUTORIAL_STEPS[tutStep];
+        if (s.task && currentTaskKey !== s.task) rebuildTask(s.task);
+        renderTutorial();
+        updateTutorialCheck();
+    }
+
+    function renderTutorial() {
+        const s = TUTORIAL_STEPS[tutStep];
+        const last = tutStep === TUTORIAL_STEPS.length - 1;
+        document.getElementById('tutorial-panel').innerHTML = `
+            <h4>🎓 Step ${tutStep + 1}/${TUTORIAL_STEPS.length}: ${s.title}</h4>
+            <div>${s.text}</div>
+            ${s.objective ? `<div class="tut-objective">🎯 ${s.objective} <strong id="tut-state">…</strong></div>` : ''}
+            <div class="tut-buttons">
+                <button style="background:#7f8c8d" onclick="exitTutorial()">Exit</button>
+                <span>
+                    <button style="background:#34495e" onclick="tutBack()" ${tutStep === 0 ? 'disabled' : ''}>◀ Back</button>
+                    <button style="background:#27ae60" id="tut-next" onclick="tutNext()">${last ? 'Finish 🎉' : 'Next ▶'}</button>
+                </span>
+            </div>`;
+    }
+
+    function updateTutorialCheck() {
+        if (tutStep < 0) return;
+        const s = TUTORIAL_STEPS[tutStep];
+        let ok = true;
+        if (s.check) {
+            try { ok = !!s.check(); } catch (e) { ok = false; }
+        }
+        const state = document.getElementById('tut-state');
+        if (state) {
+            state.innerText = ok ? '✓ Done!' : '';
+            state.style.color = '#2ecc71';
+        }
+        const next = document.getElementById('tut-next');
+        if (next) next.disabled = !ok;
+    }
+
+    function tutNext() {
+        if (tutStep >= TUTORIAL_STEPS.length - 1) { exitTutorial(); return; }
+        tutStep++;
+        enterTutStep();
+    }
+
+    function tutBack() {
+        if (tutStep <= 0) return;
+        tutStep--;
+        enterTutStep();
+    }
+
+    function exitTutorial() {
+        tutStep = -1;
+        clearInterval(tutTimer);
+        tutTimer = null;
+        document.getElementById('tutorial-panel').style.display = 'none';
+    }
+
+    /* --- Draggable Node Logic --- */
+    function startDragNode(e, node, id) {
+        const rect = node.getBoundingClientRect();
+        const offsetX = (e.clientX - rect.left) / zoom;
+        const offsetY = (e.clientY - rect.top) / zoom;
+
+        function move(ev) {
+            const canvasRect = canvasArea.getBoundingClientRect();
+            let nx = (ev.clientX - canvasRect.left - panX) / zoom - offsetX;
+            let ny = (ev.clientY - canvasRect.top - panY) / zoom - offsetY;
+
+            node.style.left = nx + 'px';
+            node.style.top = ny + 'px';
+            node.dataset.userMoved = '1';
+
+            renderConnections();
+        }
+
+        function stop() {
+            document.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseup', stop);
+        }
+
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', stop);
+    }
+
+    function removeComponent(id) {
+        document.getElementById(id).remove();
+        components = components.filter(c => c.id !== id);
+        connections = connections.filter(c => c.from !== id && c.to !== id);
+        renderConnections();
+
+        if (lastCard) runSimulation(lastCard);
+        evaluateAll();
+    }
+
+    /* --- Experiment switching --- */
+
+    // Tear down the whole lab and rebuild it for the given task
+    function rebuildTask(key) {
+        if (autoTimer) toggleAutoTrain();
+
+        currentTaskKey = key;
+        currentTask = TASKS[key];
+        N_FEATURES = currentTask.inputs.length;
+        document.getElementById('task-select').value = key;
+
+        components.forEach(c => c.dom.remove());
+        components = [];
+        connections = [];
+        svgLayer.innerHTML = '';
+        lastCard = null;
+        epoch = 0;
+        lossHistory = [];
+        weatherSeq = [null, null, null];
+        trainViewIdx = -1;
+        resetView();
+
+        createFixedModules();
+        createCards();
+        positionFixedModules();
+        updateSignalValues();
+        evaluateAll();
+        drawChart();
+
+        // Reset learning rate (tasks may declare their own starting point)
+        const lrLog = currentTask.lrLog !== undefined ? currentTask.lrLog : -1;
+        document.getElementById('lr-slider').value = lrLog;
+        updateLearningRate(lrLog);
+
+        document.getElementById('mission-text').innerText = 'Mission: ' + currentTask.name;
+        document.getElementById('train-btn').disabled = true;
+    }
+
+    function switchTask(key) {
+        if (key === currentTaskKey) return;
+        const hasWork = components.some(c => c.type !== 'input' && c.type !== 'output');
+        if (hasWork && !confirm("Switch experiment? Your current network will be cleared.")) {
+            document.getElementById('task-select').value = currentTaskKey;
+            return;
+        }
+        rebuildTask(key);
+    }
+
+    function resetCanvas() {
+        if(!confirm("Reset entire lab?")) return;
+        rebuildTask(currentTaskKey);
+    }
+
+    init();
+
+</script>
+</body>
+</html>
