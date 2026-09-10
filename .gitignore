@@ -4,3 +4,4 @@ neuroquest/app/build/
 neuroquest/app/.dart_tool/
 neuroquest/app/.flutter-plugins-dependencies
 neuroquest/app/*.iml
+neuroquest/app/android/.kotlin/

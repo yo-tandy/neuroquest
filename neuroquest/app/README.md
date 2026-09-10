@@ -1,16 +1,26 @@
-# neuroquest
+# NeuroQuest — mobile app
 
-A new Flutter project.
+Flutter wrapper that ships the NeuroQuest web game (`assets/web/`, a copy of `../web/`) inside
+a WebView for iOS and Android. The whole game runs on-device: no server, no network, no data
+collection.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run            # any connected device or simulator
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Release
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+See [`../docs/RELEASE.md`](../docs/RELEASE.md) for the store checklist and
+[`../docs/STORE_LISTING.md`](../docs/STORE_LISTING.md) for listing copy.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Keeping the web copy in sync
+
+`assets/web/` must stay identical to `../web/` (except `verify.mjs`). After editing the game:
+
+```bash
+cd .. && for f in index.html css/style.css css/fonts.css js/levels.js js/engine.js js/app.js; do cp web/$f app/assets/web/$f; done
+diff -rq web app/assets/web
+```
