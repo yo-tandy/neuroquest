@@ -41,6 +41,7 @@ body {
   margin: 0 auto;
   width: 100%;
   max-width: 430px;
+  height: 100vh;
   height: 100dvh;
   max-height: 980px; /* keep phone proportions inside tall panes */
   overflow: hidden;  /* nothing may scroll the frame itself */
