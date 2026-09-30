@@ -257,6 +257,7 @@
 
   function openFreeLab() {
     stopTraining();
+    cancelChecks();
     const lv = makeLabLevel();
     if (labBench) {
       lv.comps = labBench.comps;
@@ -335,6 +336,7 @@
 
   function switchTab(nav) {
     stopTraining();
+    cancelChecks();
     if (R && R.level.lab) labBench = { comps: R.level.comps, wires: R.wires, weights: R.weights };
     $('#scr-level').classList.add('hidden');
     $('#scr-map').classList.toggle('hidden', nav !== 'map');
@@ -364,6 +366,7 @@
 
   function openLevel(id) {
     stopTraining();
+    cancelChecks();
     const f = flat[levelIdx(id)];
     const lv = f.lv;
     const tunable = lv.comps.filter(c => (c.type === 'amp' || c.type === 'relu') && !c.frozen);
@@ -394,6 +397,7 @@
 
   function backToMap() {
     stopTraining();
+    cancelChecks();
     if (R && R.level.lab) labBench = { comps: R.level.comps, wires: R.wires, weights: R.weights };
     R = null;
     $('#scr-awards').classList.add('hidden');
@@ -619,7 +623,9 @@
     }
 
     refreshChipsActive();
+    const owner = R;
     nextFrame(() => {
+      if (R !== owner) return; // level was left before the frame ran
       renderWires();
       updateLive();
       selectCard(R.activeCard); // center the active card + draw its links
@@ -1145,6 +1151,13 @@
 
   /* ---------- per-card testing ---------- */
   let animating = false;
+  let cancelAnim = null; // aborts the in-flight signal animation
+
+  // leaving a level: drop any pending check so it can't grade the next one
+  function cancelChecks() {
+    if (R) clearTimeout(R.autoTestT);
+    if (cancelAnim) cancelAnim();
+  }
 
   function paintCardMarks() {
     if (!R) return;
@@ -1183,6 +1196,7 @@
     const paths = (R.wirePaths || []).filter(wp => wp.el.isConnected);
     if (!paths.length) { done(); return; }
     animating = true;
+    const owner = R;
 
     // depth of each source: inputs 0, then 1 + deepest feeder
     const depth = {};
@@ -1205,13 +1219,15 @@
 
     let si = 0;
     let allDone = false;
-    const finishAll = () => {
+    const finishAll = cancelled => {
       if (allDone) return;
       allDone = true;
       animating = false;
+      cancelAnim = null;
       svg.querySelectorAll('.sig-dot').forEach(d => d.remove());
-      done();
+      if (cancelled !== true && R === owner) done();
     };
+    cancelAnim = () => finishAll(true);
     const DUR = 380;
     const runStage = () => {
       if (allDone) return;
@@ -1299,7 +1315,11 @@
   // the player submits the finished circuit — the whole deck is graded
   function submitCircuit() {
     if (!R) return;
-    if (animating) { setTimeout(submitCircuit, 250); return; } // wait out the pulse
+    if (animating) { // wait out the pulse
+      const owner = R;
+      setTimeout(() => { if (R === owner) submitCircuit(); }, 250);
+      return;
+    }
     const lv = R.level;
     if (lv.mode === 'train') { testAll(); return; }
     animateSignals(() => {
