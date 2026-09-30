@@ -13,11 +13,24 @@ passwords, or a decision, and cannot be done from the code.
 | Icons | Generated from `app/assets/branding/icon.png` via `flutter_launcher_icons` (iOS set, Android adaptive + monochrome) |
 | Launch screen | Dark board green with the chip motif on both platforms, incl. Android 12+ splash API; the native splash stays up until the WebView has painted |
 | Offline | Fonts are bundled (`assets/web/fonts`, SIL OFL); the app makes no network requests and declares no INTERNET permission |
-| Orientation | Portrait only, iPad in full-screen mode |
+| Orientation | Portrait only |
+| iOS devices | iPhone only for v1 (see below) |
 | iOS privacy | `PrivacyInfo.xcprivacy` declares no tracking, no collected data; `ITSAppUsesNonExemptEncryption = false`; category Education |
 | Android release | R8 minify + resource shrinking on; signing reads `android/key.properties` when present, otherwise falls back to the debug key |
 | Back button | Android back steps out of a level / modal before it exits the app |
 | Docs | `docs/STORE_LISTING.md` (copy, keywords, screenshot list), `docs/PRIVACY.md` |
+
+## iOS: iPhone only (v1)
+
+v1 targets iPhone only (`TARGETED_DEVICE_FAMILY = 1` in `ios/Runner.xcodeproj/project.pbxproj`).
+The game is a portrait phone layout (`#app` is capped at 430px wide), so a native iPad build
+would need 13" iPad screenshots and would be reviewed as a letterboxed phone UI. iPads can still
+install it from the App Store and run it in iPhone compatibility mode.
+
+To add native iPad support later: set `TARGETED_DEVICE_FAMILY = "1,2"` in all three build
+configurations (Debug/Release/Profile), add `UISupportedInterfaceOrientations~ipad` and
+`UIRequiresFullScreen` back to `ios/Runner/Info.plist`, check the layout on iPad sizes, and
+add 13" iPad screenshots in App Store Connect.
 
 ## Versioning
 
