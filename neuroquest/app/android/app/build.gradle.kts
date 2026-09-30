@@ -8,8 +8,10 @@ plugins {
 }
 
 // Release signing: put the upload keystore details in android/key.properties
-// (git-ignored — see docs/RELEASE.md). Without it, release builds fall back to
-// the debug key so `flutter run --release` still works locally.
+// (git-ignored — see docs/RELEASE.md). Without it, any release build fails fast
+// (see checkReleaseSigningKey below) instead of producing a debug-signed artifact
+// that Play Console rejects and that could never be updated. Debug builds are
+// unaffected.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKey = keystorePropertiesFile.exists()
@@ -52,8 +54,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release")
-                            else signingConfigs.getByName("debug")
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -66,4 +69,25 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Refuse to build a release variant without the upload key. Hooked into
+// preReleaseBuild so it runs only when a release APK/AAB is actually requested,
+// never at configuration time or for debug builds.
+val missingReleaseKey = !hasReleaseKey
+val keyPropertiesPath = keystorePropertiesFile.absolutePath
+val checkReleaseSigningKey = tasks.register("checkReleaseSigningKey") {
+    doLast {
+        if (missingReleaseKey) {
+            throw GradleException(
+                "Release signing key not configured: $keyPropertiesPath is missing.\n" +
+                "Create it as described in docs/RELEASE.md (Google Play, steps 1-2) " +
+                "before running `flutter build appbundle --release` / `flutter build apk --release`. " +
+                "Use a debug build (`flutter run`, `flutter build apk --debug`) for local testing."
+            )
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(checkReleaseSigningKey)
 }
