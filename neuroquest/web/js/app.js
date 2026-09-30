@@ -830,7 +830,7 @@
   function markTargets(on) {
     document.querySelectorAll('[data-port]').forEach(elp => {
       const t = parsePortTarget(elp.dataset.port);
-      const valid = on && t && R.drag && t.n !== R.drag.from.n;
+      const valid = on && t && R.drag && !feedsInto(t.n, R.drag.from.n);
       elp.classList.toggle('droppable', !!valid);
     });
   }
@@ -880,13 +880,29 @@
     return best;
   }
 
+  // true if signal leaving part `a` already reaches part `b` (so b→a would loop)
+  function feedsInto(a, b) {
+    const seen = new Set([a]);
+    const stack = [a];
+    while (stack.length) {
+      const n = stack.pop();
+      if (n === b) return true;
+      R.wires.forEach(w => {
+        if (w.from.n === n && !seen.has(w.to.n)) { seen.add(w.to.n); stack.push(w.to.n); }
+      });
+    }
+    return false;
+  }
+
   function finishWireDrag(cx, cy) {
     markTargets(false);
     document.querySelectorAll('.armed').forEach(n => n.classList.remove('armed'));
     const from = R.drag.from;
     const t = dropTargetAt(cx, cy);
     R.drag = null;
-    if (t && t.n !== from.n) {
+    if (t && t.n !== from.n && feedsInto(t.n, from.n)) {
+      toast('No loops — signals only flow forward');
+    } else if (t && t.n !== from.n) {
       // One wire per spot — merging is what Σ junctions are FOR
       // (and a GATE is "a junction with attitude", so it merges too).
       const tComp = R.level.comps.find(c => c.id === t.n);
