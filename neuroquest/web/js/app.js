@@ -1063,7 +1063,7 @@
     const card = lv.cards[R.activeCard];
     if (lv.lab) card.f = lv.inputs.map((_, p) => R.weights['labin.' + p] !== undefined ? R.weights['labin.' + p] : 0.5);
     const fw = E.forward(lv, state, card.f);
-    const win = E.argmax(fw.softmax);
+    const win = E.predict(fw);
 
     // every element publishes its live output signal
     lv.comps.forEach(c => {
@@ -1093,7 +1093,7 @@
       const leds = m.querySelectorAll('.ledbar i');
       const onN = Math.round(pct * 10);
       leds.forEach((led, i) => led.classList.toggle('on', i < onN));
-      m.classList.toggle('winner', p === win && fw.scores.some(s => s !== 0));
+      m.classList.toggle('winner', p === win);
       m.querySelector('.m-raw b').textContent = fmt(fw.scores[p]);
     });
 
@@ -1276,7 +1276,7 @@
     animateSignals(() => {
       const card = lv.cards[i];
       const fw = E.forward(lv, { wires: R.wires, weights: R.weights }, card.f);
-      const ok = E.argmax(fw.softmax) === card.label && fw.scores.some(sc => sc !== 0);
+      const ok = E.predict(fw) === card.label;
       R.cardMarks[i] = ok ? 'ok' : 'bad';
       if (ok) R.validated.add(i); else R.validated.delete(i);
       paintCardMarks();

@@ -68,13 +68,22 @@
     return i;
   }
 
+  /* The decision a forward pass makes: the index of the single strictly
+     highest output, or -1 when the top is tied (e.g. a dead circuit where
+     every score is 0). A tie never counts as a correct answer. */
+  function predict(fw) {
+    const top = argmax(fw.scores);
+    const tied = fw.scores.some((s, j) => j !== top && s === fw.scores[top]);
+    return tied ? -1 : top;
+  }
+
   function evaluate(level, state) {
     let allCorrect = true;
     let minConf = 1;
     let totalLoss = 0;
     const perCard = level.cards.map(card => {
       const fw = forward(level, state, card.f);
-      const pred = argmax(fw.softmax);
+      const pred = predict(fw);
       const ok = pred === card.label;
       if (!ok) allCorrect = false;
       const conf = fw.softmax[card.label];
@@ -134,5 +143,5 @@
     });
   }
 
-  root.NQEngine = { forward, evaluate, trainEpoch, argmax, clamp };
+  root.NQEngine = { forward, evaluate, trainEpoch, argmax, predict, clamp };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
