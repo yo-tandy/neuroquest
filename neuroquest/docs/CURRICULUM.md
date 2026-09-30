@@ -9,7 +9,8 @@ further "the lesson is unskippable" rules are enforced: (a) a *shortcut circuit*
 out the level's new part (S3L1 without Σ, S3L4 without amps) caps below ★★; (b) with the
 level's *lesson knob* pinned at its factory value (S3L2/S3L4 bias, S2L6 second amp) the other
 knobs cap below ★★; (c) on train levels with an unlocked throttle, the *factory learning
-rate* never reaches ★★★ — the throttle has to be moved (12 seeds per rate).
+rate* never reaches ★★★ on *any* of the 12 seeds per rate — the throttle has to be moved.
+(The in-game card shuffle is unseeded, so one lucky seed means some players skip the lesson.)
 
 **Difficulty scale used below:** 1 = trivial · 2 = easy · 3 = moderate · 4 = hard · 5 = boss-hard.
 
@@ -554,8 +555,8 @@ set by hand one sector earlier.
 **Design rule of the sector (new):** every unlocked throttle starts at a setting that does *not*
 reach ★★★ (verifier rule c). Before this pass, S4L2, S4L4 and the boss all earned ★★★ at their
 factory learning rate — "you set the learning rate" was never actually required. Factory
-settings are now: S4L2 0.02 (a crawl, 20 epochs), S4L4 0.1 (23 epochs, ★★), S4L5 1.0 (wide
-open: thrashes/never converges on the close data). Each is a different wrong, on purpose.
+settings are now: S4L2 0.02 (a crawl, 20 epochs), S4L4 0.1 (23 epochs, ★★), S4L5 3.0 (wide
+open, slider maxed: thrashes/never converges on the close data). Each is a different wrong, on purpose.
 
 ### Gap analysis
 - **"Epoch" and "loss"** — now defined in the NRN datasheet ("one epoch = one pass over every
@@ -651,11 +652,12 @@ open: thrashes/never converges on the close data). Each is a different wrong, on
   pace that ships boards fast: tight epoch budget for ★★★."
 - **Hidden learning goal:** everything at once under pressure: harder (closer) class boundaries
   narrow the viable LR window (verified over 12 seeds: 0.2–0.8 converge; ★★★ ≤20 needs
-  0.2–0.5, with 0.3 the sweet spot at ~10 epochs; 1.0 and above stall). "A mid throttle beats a
+  0.2–0.5, with 0.3 the sweet spot at ~10 epochs; 1.0 and above stall on some seeds, and the
+  factory 3.0 converges on none — 0/300 seeds within 600 epochs). "A mid throttle beats a
   wild one on tricky data" = implicit regularization intuition.
 - **Setup:** as S4L4 plus Kiwi and Orange squeezed near the berry/citrus boundary (8 cards).
-  **Factory throttle 1.0** — the first press of TRAIN thrashes (loss sparkline jumping, cards
-  flickering) and never settles; the player has to pull it back. Seed variance is real here
+  **Factory throttle 3.0** (slider maxed) — the first press of TRAIN thrashes (loss sparkline
+  jumping, cards flickering) and never settles; the player has to pull it back. Seed variance is real here
   (30-seed spread at 0.3: median 6, worst 25), so RESET-and-retry is a legitimate part of the
   boss, as the NRN datasheet promises ("know when to reset").
 - **Difficulty:** 5.

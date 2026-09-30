@@ -628,7 +628,7 @@
             { from: { n: 'U3', p: 0 }, to: { n: 'out', p: 2 }, locked: true }
           ],
           freeWiring: false,
-          lr: { init: 1.0, locked: false },
+          lr: { init: 3.0, locked: false },
           pars: { p2: 80, p3: 20 },
           cards: [
             { name: 'Blueberry', icon: '🫐', f: [0.4, 0.05], label: 0 },
