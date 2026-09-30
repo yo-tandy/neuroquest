@@ -66,4 +66,12 @@ void main() {
     final controller = state.controllerForTest.platform as _FakeController;
     expect(controller.loadedAsset, 'assets/web/index.html');
   });
+
+  test('Android back on the win modal returns to the map, not CONTINUE', () {
+    // #w-map is "BACK TO MAP"; #w-next would open the next level.
+    expect(kBackScript, contains("['modal-win', '#w-map']"));
+    expect(kBackScript, isNot(contains('w-next')));
+    // No generic "first button in the open modal" fallback.
+    expect(kBackScript, isNot(contains('.modal-back:not(.hidden) .btn')));
+  });
 }

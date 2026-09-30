@@ -35,6 +35,36 @@ class NeuroQuestApp extends StatelessWidget {
   }
 }
 
+/// Runs in the game page on Android back. Returns true when the game
+/// consumed the gesture (closed a modal or left a screen).
+@visibleForTesting
+const String kBackScript = '''
+    (function () {
+      var open = function (id) {
+        var el = document.getElementById(id);
+        return el && !el.classList.contains('hidden');
+      };
+      // Each modal's own "leave" control: the win screen goes back to the
+      // map (never CONTINUE, which would open the next level); the
+      // datasheet and briefing have a single dismiss button.
+      var exits = [
+        ['modal-win', '#w-map'],
+        ['modal-datasheet', '#modal-datasheet .btn'],
+        ['modal-goal', '#modal-goal .btn']
+      ];
+      for (var i = 0; i < exits.length; i++) {
+        if (!open(exits[i][0])) continue;
+        var btn = document.querySelector(exits[i][1]);
+        if (btn) { btn.click(); return true; }
+      }
+      if (open('scr-level') && window.NQ) { NQ.backToMap(); return true; }
+      if (open('scr-awards')) {
+        var tab = document.querySelector('#scr-awards .tab[data-nav="map"]');
+        if (tab) { tab.click(); return true; }
+      }
+      return false;
+    })()''';
+
 class GameShell extends StatefulWidget {
   const GameShell({super.key});
 
@@ -73,23 +103,7 @@ class _GameShellState extends State<GameShell> {
   /// the app. Returns true when the game consumed the gesture.
   Future<bool> _handleBack() async {
     try {
-      final r = await _controller.runJavaScriptReturningResult('''
-        (function () {
-          var open = function (id) {
-            var el = document.getElementById(id);
-            return el && !el.classList.contains('hidden');
-          };
-          if (open('modal-goal') || open('modal-win') || open('modal-datasheet')) {
-            var btn = document.querySelector('.modal-back:not(.hidden) .btn');
-            if (btn) { btn.click(); return true; }
-          }
-          if (open('scr-level') && window.NQ) { NQ.backToMap(); return true; }
-          if (open('scr-awards')) {
-            var tab = document.querySelector('#scr-awards .tab[data-nav="map"]');
-            if (tab) { tab.click(); return true; }
-          }
-          return false;
-        })()''');
+      final r = await _controller.runJavaScriptReturningResult(kBackScript);
       return r == true || r == 'true';
     } catch (_) {
       return false;
