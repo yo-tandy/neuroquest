@@ -202,20 +202,20 @@ for (const ch of CHAPTERS) {
       const best = gridSearch(lv, useWires);
       // shortcut circuits / pinned knobs must stall below ★★
       const notes = [];
+      let shortcutOk = true;
       const sc = SHORTCUTS[lv.id];
       if (sc) {
         const locked = lv.fixedWires.filter(fw => fw.locked).map(fw => ({ from: fw.from, to: fw.to }));
         const r = gridSearch(lv, sc.wires.concat(locked));
-        if (r.minConf >= lv.stars.s2) notes.push(`shortcut reaches ★★ (${sc.why}: ${r.minConf.toFixed(3)})`);
+        if (r.minConf >= lv.stars.s2) { shortcutOk = false; notes.push(`shortcut reaches ★★ (${sc.why}: ${r.minConf.toFixed(3)})`); }
         else notes.push(`shortcut caps at ${r.minConf.toFixed(3)} (${sc.why}) ✓`);
       }
       const pn = PINNED[lv.id];
       if (pn) {
         const r = gridSearch(lv, useWires, pn.keys);
-        if (r.minConf >= lv.stars.s2) notes.push(`pinned knobs reach ★★ (${pn.why}: ${r.minConf.toFixed(3)})`);
+        if (r.minConf >= lv.stars.s2) { shortcutOk = false; notes.push(`pinned knobs reach ★★ (${pn.why}: ${r.minConf.toFixed(3)})`); }
         else notes.push(`pinned caps at ${r.minConf.toFixed(3)} (${pn.why}) ✓`);
       }
-      const shortcutOk = !notes.some(n => n.includes('reach ★★'));
       const ok = best.minConf >= lv.stars.s3 && best.minConf > 0 && !initSolved && !wiredInitSolved && shortcutOk;
       if (!ok) fail++;
       if (wiredInitSolved) console.log(`     ^ ${lv.id} solvable by wiring alone (knobs untouched)`);
