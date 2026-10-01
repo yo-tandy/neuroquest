@@ -142,19 +142,21 @@ function trainSearch(level) {
   if (!lrs.includes(level.lr.init)) lrs.push(level.lr.init);
   const out = [];
   for (const lr of lrs) {
-    let worst = 0, ok = true;
+    // epochs = worst seed (a stalled seed makes it ∞); fastest = best seed.
+    // Every seed runs so the fastest is never hidden behind a stalled one.
+    let worst = 0, fastest = Infinity;
     for (let seed = 1; seed <= 12; seed++) {
       const state = { wires, weights: baseWeights(level) };
       const rnd = mkRnd(seed);
-      let solved = -1;
+      let solved = Infinity;
       for (let ep = 1; ep <= 600; ep++) {
         E.trainEpoch(level, state, lr, rnd);
         if (E.evaluate(level, state).allCorrect) { solved = ep; break; }
       }
-      if (solved < 0) { ok = false; break; }
       worst = Math.max(worst, solved);
+      fastest = Math.min(fastest, solved);
     }
-    out.push({ lr, epochs: ok ? worst : Infinity });
+    out.push({ lr, epochs: worst, fastest });
   }
   return out;
 }
@@ -169,12 +171,15 @@ for (const ch of CHAPTERS) {
       const bestEp = Math.min(...solvable.map(r => r.epochs));
       const nearPar3 = solvable.filter(r => r.epochs <= lv.pars.p3).length;
       // an unlocked throttle must MATTER: the factory setting alone must not
-      // reach ★★★ (mirrors the "untouched knobs" rule of hand-tuned boards)
-      const atInit = res.find(r => r.lr === lv.lr.init).epochs;
-      const initTooGood = !lv.lr.locked && atInit <= lv.pars.p3;
+      // reach ★★★ on ANY seed (mirrors the "untouched knobs" rule of
+      // hand-tuned boards). In-game the shuffle is unseeded, so a single lucky
+      // seed means some players get ★★★ without touching the throttle.
+      const initRes = res.find(r => r.lr === lv.lr.init);
+      const atInit = initRes.epochs;
+      const initTooGood = !lv.lr.locked && initRes.fastest <= lv.pars.p3;
       const ok = solvable.length > 0 && bestEp <= lv.pars.p3 && nearPar3 >= 1 && !initTooGood;
       if (!ok) fail++;
-      if (initTooGood) console.log(`     ^ ${lv.id} reaches ★★★ at the factory throttle (${lv.lr.init} → ${atInit} ep)`);
+      if (initTooGood) console.log(`     ^ ${lv.id} reaches ★★★ at the factory throttle on some seed (${lv.lr.init} → ${initRes.fastest} ep)`);
       console.log(`${ok ? 'OK ' : 'FAIL'} ${lv.id.padEnd(6)} ${lv.name.padEnd(15)} best=${bestEp}ep ` +
         `(★★ ≤${lv.pars.p2}, ★★★ ≤${lv.pars.p3}; init lr ${lv.lr.init} → ${isFinite(atInit) ? atInit : '∞'})  ` +
         res.map(r => `${r.lr}:${isFinite(r.epochs) ? r.epochs : '∞'}`).join(' '));
