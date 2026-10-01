@@ -75,7 +75,7 @@ flutter {
 // preReleaseBuild so it runs only when a release APK/AAB is actually requested,
 // never at configuration time or for debug builds.
 val missingReleaseKey = !hasReleaseKey
-val keyPropertiesPath = keystorePropertiesFile.absolutePath
+val keyPropertiesPath = "android/" + keystorePropertiesFile.relativeTo(rootProject.projectDir).path
 val checkReleaseSigningKey = tasks.register("checkReleaseSigningKey") {
     doLast {
         if (missingReleaseKey) {
