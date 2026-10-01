@@ -255,6 +255,15 @@ console.log('\n=== Engine: wiring order ===');
   check('feedsInto: diamond side wire L2 → L3 is allowed', !E.feedsInto(fw, 'L3', 'L2'));
   check('feedsInto: in → part and part → out are allowed',
     !E.feedsInto(fw, 'L4', 'in') && !E.feedsInto(fw, 'out', 'L1'));
+
+  // predict(): a tie (incl. a dead circuit) is never an answer
+  check('predict: strict winner', E.predict({ scores: [0.2, 1.5, -1] }) === 1);
+  check('predict: tied top → -1', E.predict({ scores: [2, 2, 0] }) === -1);
+  check('predict: dead circuit (all 0) → -1', E.predict({ scores: [0, 0] }) === -1);
+  const dead = E.evaluate({ ...lab([]), cards: [{ f: [1], label: 0 }], stars: { s2: 0.6, s3: 0.7 } },
+    { wires: [], weights: {} });
+  check('evaluate: unwired circuit does not pass an OUT A card',
+    !dead.allCorrect && !dead.perCard[0].ok && !dead.stars);
 }
 
 console.log(fail ? `\n${fail} LEVEL(S) FAILED` : '\nAll levels verified.');
