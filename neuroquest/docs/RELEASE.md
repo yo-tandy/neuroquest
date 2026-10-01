@@ -15,7 +15,7 @@ passwords, or a decision, and cannot be done from the code.
 | Offline | Fonts are bundled (`assets/web/fonts`, SIL OFL); the app makes no network requests and declares no INTERNET permission |
 | Orientation | Portrait only, iPad in full-screen mode |
 | iOS privacy | `PrivacyInfo.xcprivacy` declares no tracking, no collected data; `ITSAppUsesNonExemptEncryption = false`; category Education |
-| Android release | R8 minify + resource shrinking on; signing reads `android/key.properties` when present, otherwise falls back to the debug key |
+| Android release | R8 minify + resource shrinking on; signing reads `android/key.properties`; if it is missing, every release build (`flutter build appbundle/apk --release`, `flutter run --release`) fails with a pointer to this doc instead of producing a debug-signed artifact. Debug builds need no key |
 | Back button | Android back steps out of a level / modal before it exits the app |
 | Docs | `docs/STORE_LISTING.md` (copy, keywords, screenshot list), `docs/PRIVACY.md` |
 
@@ -38,6 +38,9 @@ build number 1. Both stores reject a build number they have already seen, so inc
    keyAlias=upload
    storeFile=/Users/<you>/neuroquest-upload.jks
    ```
+   Without this file the Gradle task `checkReleaseSigningKey` fails any release build with
+   "Release signing key not configured" — there is no silent fallback to the debug key, since a
+   debug-signed `.aab` is rejected by Play Console and a debug-signed APK can never be updated.
 3. **YOU — once per machine:** install the Android SDK "command-line tools" component
    (Android Studio → SDK Manager → SDK Tools → *Android SDK Command-line Tools*, then
    `flutter doctor --android-licenses`). Without it `flutter build appbundle` still writes a
