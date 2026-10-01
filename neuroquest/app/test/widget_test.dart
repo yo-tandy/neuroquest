@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neuroquest/main.dart';
@@ -73,5 +75,19 @@ void main() {
     expect(kBackScript, isNot(contains('w-next')));
     // No generic "first button in the open modal" fallback.
     expect(kBackScript, isNot(contains('.modal-back:not(.hidden) .btn')));
+  });
+
+  test('Android back script behaves per screen when run against a stub DOM',
+      () async {
+    // Executes kBackScript in Node (test/back_script_test.mjs); skipped
+    // where Node isn't installed.
+    final ProcessResult r;
+    try {
+      r = await Process.run('node', ['test/back_script_test.mjs']);
+    } on ProcessException {
+      markTestSkipped('node not installed');
+      return;
+    }
+    expect(r.exitCode, 0, reason: '${r.stdout}${r.stderr}');
   });
 }
