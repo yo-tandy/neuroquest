@@ -15,8 +15,8 @@
     level.comps.forEach(c => { val[c.id + ':0'] = 0; });
 
     // Evaluate parts in dependency order of the current wiring (one pass,
-    // any depth). Parts caught in a cycle can't be ordered — they go last,
-    // reading 0 from any not-yet-computed input.
+    // any depth). Parts that can't be ordered — those in a cycle and anything
+    // fed only through one — go last, reading 0 from any not-yet-computed input.
     const order = [];
     const indeg = Object.create(null);
     level.comps.forEach(c => { indeg[c.id] = 0; });
@@ -78,6 +78,21 @@
     const softmax = ex.map(e => e / Z);
 
     return { val, scores, softmax };
+  }
+
+  // true when a signal leaving part `a` can reach part `b` along `wires`
+  // (a === b counts) — wiring b → a would then close a loop
+  function feedsInto(wires, a, b) {
+    const seen = new Set([a]);
+    const stack = [a];
+    while (stack.length) {
+      const n = stack.pop();
+      if (n === b) return true;
+      wires.forEach(w => {
+        if (w.from.n === n && !seen.has(w.to.n)) { seen.add(w.to.n); stack.push(w.to.n); }
+      });
+    }
+    return false;
   }
 
   function argmax(a) {
@@ -152,5 +167,5 @@
     });
   }
 
-  root.NQEngine = { forward, evaluate, trainEpoch, argmax, clamp };
+  root.NQEngine = { forward, evaluate, trainEpoch, argmax, clamp, feedsInto };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

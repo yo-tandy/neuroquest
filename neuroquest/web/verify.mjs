@@ -221,5 +221,36 @@ for (const ch of CHAPTERS) {
     }
   }
 }
+// Engine wiring-order checks: forward() must handle any chain depth and
+// settle deterministically on loops; feedsInto() is what refuses loop wires.
+console.log('\n=== Engine: wiring order ===');
+{
+  const amps = n => Array.from({ length: n }, (_, i) => ({ id: 'L' + (i + 1), type: 'amp' }));
+  const lab = comps => ({ comps, outputs: ['A', 'B'] });
+  const check = (name, cond) => { if (!cond) fail++; console.log(`${cond ? 'OK ' : 'FAIL'} ${name}`); };
+
+  // in → L6 → L5 → … → L1 → OUT A, declared in the "wrong" order
+  const chain = [w('in', 0, 'L6', 0)];
+  for (let i = 6; i > 1; i--) chain.push(w('L' + i, 0, 'L' + (i - 1), 0));
+  chain.push(w('L1', 0, 'out', 0));
+  const deep = E.forward(lab(amps(6)), { wires: chain, weights: {} }, [1]);
+  check('6-deep chain reaches the output', deep.scores[0] === 1);
+
+  // L1 ⇄ L2 loop (legacy wiring) fed from in, read at OUT A: finite and repeatable
+  const loopWires = [w('in', 0, 'L1', 0), w('L1', 0, 'L2', 0), w('L2', 0, 'L1', 0), w('L2', 0, 'out', 0)];
+  const l1 = E.forward(lab(amps(2)), { wires: loopWires, weights: {} }, [1]);
+  const l2 = E.forward(lab(amps(2)), { wires: loopWires, weights: {} }, [1]);
+  check('loop wiring gives a finite, deterministic result',
+    l1.scores.every(Number.isFinite) && l1.scores.join() === l2.scores.join());
+
+  const fw = [w('in', 0, 'L1', 0), w('L1', 0, 'L2', 0), w('L1', 0, 'L3', 0),
+              w('L2', 0, 'L4', 0), w('L3', 0, 'L4', 0), w('L4', 0, 'out', 0)];
+  check('feedsInto: self-loop refused', E.feedsInto(fw, 'L2', 'L2'));
+  check('feedsInto: back-wire L4 → L1 closes a loop', E.feedsInto(fw, 'L1', 'L4'));
+  check('feedsInto: diamond side wire L2 → L3 is allowed', !E.feedsInto(fw, 'L3', 'L2'));
+  check('feedsInto: in → part and part → out are allowed',
+    !E.feedsInto(fw, 'L4', 'in') && !E.feedsInto(fw, 'out', 'L1'));
+}
+
 console.log(fail ? `\n${fail} LEVEL(S) FAILED` : '\nAll levels verified.');
 process.exit(fail ? 1 : 0);
