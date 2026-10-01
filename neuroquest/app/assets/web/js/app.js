@@ -647,8 +647,10 @@
   let stripDragged = false;
   function bindStripDrag(strip) {
     strip.onpointerdown = e => {
-      const startX = e.clientX, startL = strip.scrollLeft;
       stripDragged = false;
+      // Touch/pen already scroll natively (touch-action: pan-x); only mice need this.
+      if (e.pointerType !== 'mouse') return;
+      const startX = e.clientX, startL = strip.scrollLeft;
       const move = ev => {
         if (Math.abs(ev.clientX - startX) > 6) stripDragged = true;
         if (stripDragged) strip.scrollLeft = startL - (ev.clientX - startX);
@@ -656,9 +658,11 @@
       const up = () => {
         document.removeEventListener('pointermove', move);
         document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', up);
       };
       document.addEventListener('pointermove', move);
       document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
     };
   }
 
@@ -815,11 +819,13 @@
       const up = () => {
         window.removeEventListener('pointermove', mm);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
         node.classList.remove('dragging');
       };
       node.classList.add('dragging');
       window.addEventListener('pointermove', mm);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
       e.preventDefault();
     });
   }
