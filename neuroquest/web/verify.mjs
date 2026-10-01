@@ -142,19 +142,21 @@ function trainSearch(level) {
   if (!lrs.includes(level.lr.init)) lrs.push(level.lr.init);
   const out = [];
   for (const lr of lrs) {
-    let worst = 0, ok = true;
+    // epochs = worst seed (a stalled seed makes it ∞); fastest = best seed.
+    // Every seed runs so the fastest is never hidden behind a stalled one.
+    let worst = 0, fastest = Infinity;
     for (let seed = 1; seed <= 12; seed++) {
       const state = { wires, weights: baseWeights(level) };
       const rnd = mkRnd(seed);
-      let solved = -1;
+      let solved = Infinity;
       for (let ep = 1; ep <= 600; ep++) {
         E.trainEpoch(level, state, lr, rnd);
         if (E.evaluate(level, state).allCorrect) { solved = ep; break; }
       }
-      if (solved < 0) { ok = false; break; }
       worst = Math.max(worst, solved);
+      fastest = Math.min(fastest, solved);
     }
-    out.push({ lr, epochs: ok ? worst : Infinity });
+    out.push({ lr, epochs: worst, fastest });
   }
   return out;
 }
@@ -169,12 +171,15 @@ for (const ch of CHAPTERS) {
       const bestEp = Math.min(...solvable.map(r => r.epochs));
       const nearPar3 = solvable.filter(r => r.epochs <= lv.pars.p3).length;
       // an unlocked throttle must MATTER: the factory setting alone must not
-      // reach ★★★ (mirrors the "untouched knobs" rule of hand-tuned boards)
-      const atInit = res.find(r => r.lr === lv.lr.init).epochs;
-      const initTooGood = !lv.lr.locked && atInit <= lv.pars.p3;
+      // reach ★★★ on ANY seed (mirrors the "untouched knobs" rule of
+      // hand-tuned boards). In-game the shuffle is unseeded, so a single lucky
+      // seed means some players get ★★★ without touching the throttle.
+      const initRes = res.find(r => r.lr === lv.lr.init);
+      const atInit = initRes.epochs;
+      const initTooGood = !lv.lr.locked && initRes.fastest <= lv.pars.p3;
       const ok = solvable.length > 0 && bestEp <= lv.pars.p3 && nearPar3 >= 1 && !initTooGood;
       if (!ok) fail++;
-      if (initTooGood) console.log(`     ^ ${lv.id} reaches ★★★ at the factory throttle (${lv.lr.init} → ${atInit} ep)`);
+      if (initTooGood) console.log(`     ^ ${lv.id} reaches ★★★ at the factory throttle on some seed (${lv.lr.init} → ${initRes.fastest} ep)`);
       console.log(`${ok ? 'OK ' : 'FAIL'} ${lv.id.padEnd(6)} ${lv.name.padEnd(15)} best=${bestEp}ep ` +
         `(★★ ≤${lv.pars.p2}, ★★★ ≤${lv.pars.p3}; init lr ${lv.lr.init} → ${isFinite(atInit) ? atInit : '∞'})  ` +
         res.map(r => `${r.lr}:${isFinite(r.epochs) ? r.epochs : '∞'}`).join(' '));
@@ -221,5 +226,36 @@ for (const ch of CHAPTERS) {
     }
   }
 }
+// Engine wiring-order checks: forward() must handle any chain depth and
+// settle deterministically on loops; feedsInto() is what refuses loop wires.
+console.log('\n=== Engine: wiring order ===');
+{
+  const amps = n => Array.from({ length: n }, (_, i) => ({ id: 'L' + (i + 1), type: 'amp' }));
+  const lab = comps => ({ comps, outputs: ['A', 'B'] });
+  const check = (name, cond) => { if (!cond) fail++; console.log(`${cond ? 'OK ' : 'FAIL'} ${name}`); };
+
+  // in → L6 → L5 → … → L1 → OUT A, declared in the "wrong" order
+  const chain = [w('in', 0, 'L6', 0)];
+  for (let i = 6; i > 1; i--) chain.push(w('L' + i, 0, 'L' + (i - 1), 0));
+  chain.push(w('L1', 0, 'out', 0));
+  const deep = E.forward(lab(amps(6)), { wires: chain, weights: {} }, [1]);
+  check('6-deep chain reaches the output', deep.scores[0] === 1);
+
+  // L1 ⇄ L2 loop (legacy wiring) fed from in, read at OUT A: finite and repeatable
+  const loopWires = [w('in', 0, 'L1', 0), w('L1', 0, 'L2', 0), w('L2', 0, 'L1', 0), w('L2', 0, 'out', 0)];
+  const l1 = E.forward(lab(amps(2)), { wires: loopWires, weights: {} }, [1]);
+  const l2 = E.forward(lab(amps(2)), { wires: loopWires, weights: {} }, [1]);
+  check('loop wiring gives a finite, deterministic result',
+    l1.scores.every(Number.isFinite) && l1.scores.join() === l2.scores.join());
+
+  const fw = [w('in', 0, 'L1', 0), w('L1', 0, 'L2', 0), w('L1', 0, 'L3', 0),
+              w('L2', 0, 'L4', 0), w('L3', 0, 'L4', 0), w('L4', 0, 'out', 0)];
+  check('feedsInto: self-loop refused', E.feedsInto(fw, 'L2', 'L2'));
+  check('feedsInto: back-wire L4 → L1 closes a loop', E.feedsInto(fw, 'L1', 'L4'));
+  check('feedsInto: diamond side wire L2 → L3 is allowed', !E.feedsInto(fw, 'L3', 'L2'));
+  check('feedsInto: in → part and part → out are allowed',
+    !E.feedsInto(fw, 'L4', 'in') && !E.feedsInto(fw, 'out', 'L1'));
+}
+
 console.log(fail ? `\n${fail} LEVEL(S) FAILED` : '\nAll levels verified.');
 process.exit(fail ? 1 : 0);

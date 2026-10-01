@@ -14,38 +14,56 @@
     features.forEach((f, i) => { val['in:' + i] = f; });
     level.comps.forEach(c => { val[c.id + ':0'] = 0; });
 
-    for (let pass = 0; pass < 4; pass++) {
-      level.comps.forEach(c => {
-        const inWires = state.wires.filter(w => w.to.n === c.id);
-        if (c.type === 'amp') {
-          const w0 = inWires.find(w => w.to.p === 0);
-          const x = w0 ? (val[w0.from.n + ':' + w0.from.p] || 0) : 0;
-          val[c.id + ':0'] = x * (state.weights[c.id] !== undefined ? state.weights[c.id] : 1);
-        } else if (c.type === 'norm') { // NORMALIZER: (x − zero) / span
-          const w0 = inWires.find(w => w.to.p === 0);
-          const x = w0 ? (val[w0.from.n + ':' + w0.from.p] || 0) : 0;
-          const zero = state.weights[c.id + '.zero'] || 0;
-          const span = Math.max(1e-6, Math.abs(state.weights[c.id + '.span'] || 1));
-          val[c.id + ':0'] = (x - zero) / span;
-        } else if (c.type === 'sum') { // Σ junction: adds its inputs, nothing else
-          let s = 0;
-          inWires.forEach(w => { s += val[w.from.n + ':' + w.from.p] || 0; });
-          val[c.id + ':0'] = s;
-        } else if (c.type === 'relu') { // GATE: sum + bias, clipped at zero
-          let s = (state.weights[c.id] || 0);
-          inWires.forEach(w => { s += val[w.from.n + ':' + w.from.p] || 0; });
-          val[c.id + ':0'] = Math.max(0, s);
-        } else if (c.type === 'neuron') { // per-port weights + bias + ReLU
-          let s = (state.weights[c.id + '.b'] || 0);
-          inWires.forEach(w => {
-            const x = val[w.from.n + ':' + w.from.p] || 0;
-            s += (state.weights[c.id + '.w' + w.to.p] !== undefined
-              ? state.weights[c.id + '.w' + w.to.p] : 1) * x;
-          });
-          val[c.id + ':0'] = Math.max(0, s);
+    // Evaluate parts in dependency order of the current wiring (one pass,
+    // any depth). Parts that can't be ordered — those in a cycle and anything
+    // fed only through one — go last, reading 0 from any not-yet-computed input.
+    const order = [];
+    const indeg = Object.create(null);
+    level.comps.forEach(c => { indeg[c.id] = 0; });
+    state.wires.forEach(w => {
+      if (w.to.n in indeg && w.from.n in indeg) indeg[w.to.n]++;
+    });
+    const ready = level.comps.filter(c => indeg[c.id] === 0);
+    while (ready.length) {
+      const c = ready.shift();
+      order.push(c);
+      state.wires.forEach(w => {
+        if (w.from.n === c.id && w.to.n in indeg && --indeg[w.to.n] === 0) {
+          ready.push(level.comps.find(k => k.id === w.to.n));
         }
       });
     }
+    level.comps.forEach(c => { if (order.indexOf(c) < 0) order.push(c); });
+    order.forEach(c => {
+      const inWires = state.wires.filter(w => w.to.n === c.id);
+      if (c.type === 'amp') {
+        const w0 = inWires.find(w => w.to.p === 0);
+        const x = w0 ? (val[w0.from.n + ':' + w0.from.p] || 0) : 0;
+        val[c.id + ':0'] = x * (state.weights[c.id] !== undefined ? state.weights[c.id] : 1);
+      } else if (c.type === 'norm') { // NORMALIZER: (x − zero) / span
+        const w0 = inWires.find(w => w.to.p === 0);
+        const x = w0 ? (val[w0.from.n + ':' + w0.from.p] || 0) : 0;
+        const zero = state.weights[c.id + '.zero'] || 0;
+        const span = Math.max(1e-6, Math.abs(state.weights[c.id + '.span'] || 1));
+        val[c.id + ':0'] = (x - zero) / span;
+      } else if (c.type === 'sum') { // Σ junction: adds its inputs, nothing else
+        let s = 0;
+        inWires.forEach(w => { s += val[w.from.n + ':' + w.from.p] || 0; });
+        val[c.id + ':0'] = s;
+      } else if (c.type === 'relu') { // GATE: sum + bias, clipped at zero
+        let s = (state.weights[c.id] || 0);
+        inWires.forEach(w => { s += val[w.from.n + ':' + w.from.p] || 0; });
+        val[c.id + ':0'] = Math.max(0, s);
+      } else if (c.type === 'neuron') { // per-port weights + bias + ReLU
+        let s = (state.weights[c.id + '.b'] || 0);
+        inWires.forEach(w => {
+          const x = val[w.from.n + ':' + w.from.p] || 0;
+          s += (state.weights[c.id + '.w' + w.to.p] !== undefined
+            ? state.weights[c.id + '.w' + w.to.p] : 1) * x;
+        });
+        val[c.id + ':0'] = Math.max(0, s);
+      }
+    });
 
     const scores = level.outputs.map((_, p) => {
       let s = 0;
@@ -60,6 +78,21 @@
     const softmax = ex.map(e => e / Z);
 
     return { val, scores, softmax };
+  }
+
+  // true when a signal leaving part `a` can reach part `b` along `wires`
+  // (a === b counts) — wiring b → a would then close a loop
+  function feedsInto(wires, a, b) {
+    const seen = new Set([a]);
+    const stack = [a];
+    while (stack.length) {
+      const n = stack.pop();
+      if (n === b) return true;
+      wires.forEach(w => {
+        if (w.from.n === n && !seen.has(w.to.n)) { seen.add(w.to.n); stack.push(w.to.n); }
+      });
+    }
+    return false;
   }
 
   function argmax(a) {
@@ -143,5 +176,5 @@
     });
   }
 
-  root.NQEngine = { forward, evaluate, trainEpoch, argmax, predict, clamp };
+  root.NQEngine = { forward, evaluate, trainEpoch, argmax, predict, clamp, feedsInto };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
