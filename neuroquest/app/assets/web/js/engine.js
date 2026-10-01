@@ -18,7 +18,7 @@
     // any depth). Parts caught in a cycle can't be ordered — they go last,
     // reading 0 from any not-yet-computed input.
     const order = [];
-    const indeg = {};
+    const indeg = Object.create(null);
     level.comps.forEach(c => { indeg[c.id] = 0; });
     state.wires.forEach(w => {
       if (w.to.n in indeg && w.from.n in indeg) indeg[w.to.n]++;
